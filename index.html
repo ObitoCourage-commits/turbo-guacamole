@@ -80,6 +80,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;display:flex;ali
 .game-card[data-id="stalker"]{--card-color:#b8ff00;--card-shadow:rgba(184,255,0,0.10)}
 .game-card[data-id="fallout"]{--card-color:#00ff41;--card-shadow:rgba(0,255,65,0.10)}
 .game-card[data-id="poppy"]{--card-color:#e84393;--card-shadow:rgba(232,67,147,0.12)}
+.game-card[data-id="minecraft"]{--card-color:#7ec850;--card-shadow:rgba(126,200,80,0.11)}
 .badge-new{background:rgba(240,165,0,0.15)!important;color:var(--gold)!important;border-color:var(--gold)!important;animation:badgePulse 2s ease-in-out infinite}
 @keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(240,165,0,0.4)}50%{box-shadow:0 0 8px 2px rgba(240,165,0,0.2)}}
 .card-art{position:relative;height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -97,6 +98,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;display:flex;ali
 .card-art[data-id="stalker"]{background:radial-gradient(ellipse at 50% 40%,rgba(184,255,0,0.08) 0%,transparent 55%),radial-gradient(ellipse at 30% 80%,rgba(60,80,0,0.15) 0%,transparent 55%),#050800}
 .card-art[data-id="fallout"]{background:radial-gradient(ellipse at 50% 35%,rgba(0,255,65,0.09) 0%,transparent 55%),radial-gradient(ellipse at 70% 80%,rgba(0,100,20,0.12) 0%,transparent 55%),#030a04}
 .card-art[data-id="poppy"]{background:radial-gradient(ellipse at 50% 35%,rgba(232,67,147,0.11) 0%,transparent 55%),radial-gradient(ellipse at 25% 80%,rgba(26,74,191,0.1) 0%,transparent 55%),#0a080f}
+.card-art[data-id="minecraft"]{background:radial-gradient(ellipse at 50% 35%,rgba(126,200,80,0.1) 0%,transparent 55%),radial-gradient(ellipse at 70% 80%,rgba(42,80,16,0.15) 0%,transparent 55%),#050a03}
 .art-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px);background-size:28px 28px}
 .art-icon{font-size:80px;position:relative;z-index:2;opacity:0.75;filter:drop-shadow(0 0 28px var(--card-color));transition:all 0.4s cubic-bezier(.2,.8,.2,1)}
 .game-card:hover .art-icon{opacity:1;transform:scale(1.12) translateY(-4px)}
@@ -164,7 +166,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <li><a href="#features">Features</a></li>
     <li><a href="#suggest">Suggest</a></li>
   </ul>
-  <div class="nav-live"><div class="live-dot"></div>14 GAMES LIVE</div>
+  <div class="nav-live"><div class="live-dot"></div>15 GAMES LIVE</div>
 </nav>
 
 <section id="hero">
@@ -178,7 +180,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <a href="r6siege.html" class="btn-ghost">Play R6 Siege →</a>
   </div>
   <div class="hero-stats">
-    <div class="stat"><div class="stat-n">14</div><div class="stat-l">Games</div></div>
+    <div class="stat"><div class="stat-n">15</div><div class="stat-l">Games</div></div>
     <div class="stat"><div class="stat-n">∞</div><div class="stat-l">Free Plays</div></div>
     <div class="stat"><div class="stat-n">0</div><div class="stat-l">Downloads</div></div>
   </div>
@@ -415,7 +417,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       <div class="card-art" data-id="poppy">
         <div class="art-grid"></div>
         <div class="art-icon">🧸</div>
-        <div class="art-badge badge-new">NEW</div>
+        <div class="art-badge">HORROR</div>
         <div class="art-players">🎮 Single Player</div>
       </div>
       <div class="card-body">
@@ -423,6 +425,22 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
         <div class="card-name">POPPY PLAYTIME — CHAPTER 1</div>
         <div class="card-desc">Welcome back to Playtime Co. The factory has been silent for years — until now. Solve puzzles, dodge Huggy Wuggy, and uncover the dark secret buried deep inside the abandoned toy factory.</div>
         <div class="card-tags"><span class="tag">Horror</span><span class="tag">Puzzle</span><span class="tag">Stealth</span><span class="tag">Story</span></div>
+        <div class="card-footer"><span class="card-play">▶ Play Now</span><span class="card-stars">★★★★★</span></div>
+      </div>
+    </a>
+
+    <a class="game-card" data-id="minecraft" data-name="2D Minecraft" data-added="15" href="minecraft2d.html">
+      <div class="card-art" data-id="minecraft">
+        <div class="art-grid"></div>
+        <div class="art-icon">⛏️</div>
+        <div class="art-badge badge-new">NEW</div>
+        <div class="art-players">🎮 Single Player</div>
+      </div>
+      <div class="card-body">
+        <div class="card-genre">Sandbox Survival</div>
+        <div class="card-name">2D MINECRAFT</div>
+        <div class="card-desc">Survive. Mine. Build. Craft. A fully playable 2D Minecraft experience in your browser — dig deep for resources, craft tools and weapons, and build whatever you can imagine.</div>
+        <div class="card-tags"><span class="tag">Sandbox</span><span class="tag">Survival</span><span class="tag">Crafting</span><span class="tag">Building</span></div>
         <div class="card-footer"><span class="card-play">▶ Play Now</span><span class="card-stars">★★★★★</span></div>
       </div>
     </a>
@@ -496,6 +514,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <a href="stalker-rpg.html">S.T.A.L.K.E.R.</a>
     <a href="fallout4-rpg.html">Fallout 4</a>
     <a href="poppy-playtime.html">Poppy Playtime</a>
+    <a href="minecraft2d.html">2D Minecraft</a>
   </div>
   <div class="foot-copy">Free · Browser-Based · No Downloads <a href="admin.html" class="foot-owner-link" title="">⬡</a></div>
 </footer>
