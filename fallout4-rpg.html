@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FALLOUT 4 — THE COMMONWEALTH</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Russo+One&display=swap');
+
+:root {
+  --pip: #00ff41;
+  --pip-dim: #00c832;
+  --pip-dark: #009620;
+  --pip-faint: rgba(0,255,65,0.07);
+  --pip-glow: rgba(0,255,65,0.25);
+  --bg: #030a04;
+  --bg2: #050e06;
+  --bg3: #071209;
+  --border: #0a2b0d;
+  --border2: #0f4012;
+  --amber: #ffb000;
+  --red: #ff3c28;
+  --blue: #28c8ff;
+  --text: #00e838;
+  --text2: #00b82c;
+  --text3: #006618;
+  --text4: #004410;
+  --scan: rgba(0,255,65,0.03);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { width:100%;height:100%;background:var(--bg);color:var(--pip);font-family:'Share Tech Mono',monospace;overflow:hidden; }
+
+/* CRT effects */
+body::before {
+  content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,var(--scan) 3px,var(--scan) 4px);
+}
+body::after {
+  content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,0.75) 100%);
+}
+
+/* Flicker animation */
+@keyframes flicker {
+  0%,100%{opacity:1} 92%{opacity:1} 93%{opacity:0.85} 94%{opacity:1} 97%{opacity:0.9} 98%{opacity:1}
+}
+#app { animation: flicker 8s infinite; }
+
+/* Scanline sweep */
+@keyframes sweep {
+  0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)}
+}
+.sweep-line {
+  position:fixed;left:0;right:0;height:3px;
+  background:linear-gradient(180deg,transparent,rgba(0,255,65,0.08),transparent);
+  animation:sweep 6s linear infinite;z-index:9997;pointer-events:none;
+}
+
+#app {
+  display:grid;
+  grid-template-columns:260px 1fr 220px;
+  grid-template-rows:52px 1fr 58px;
+  grid-template-areas:
+    "pipboy-top pipboy-top pipboy-top"
+    "stats      main       sidebar"
+    "stats      input      sidebar";
+  height:100vh;gap:0;
+}
+
+/* ── TOP BAR ── */
+#pipboy-top {
+  grid-area:pipboy-top;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;position:relative;overflow:hidden;
+}
+#pipboy-top::after {
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--pip-dark),var(--pip),var(--pip-dark),transparent);
+}
+
+.pip-logo {
+  font-family:'Russo One',sans-serif;font-size:18px;letter-spacing:5px;
+  color:var(--pip);text-shadow:0 0 15px var(--pip-glow);display:flex;align-items:center;gap:10px;
+}
+.pip-logo .vault { font-size:11px;color:var(--text3);letter-spacing:3px; }
+
+.top-tabs { display:flex;gap:2px; }
+.top-tab {
+  font-size:10px;letter-spacing:2px;padding:6px 14px;cursor:pointer;
+  border:1px solid transparent;color:var(--text3);transition:all 0.15s;
+  text-transform:uppercase;
+}
+.top-tab:hover { color:var(--text2);border-color:var(--border2); }
+.top-tab.active { color:var(--pip);border-color:var(--border2);background:var(--pip-faint);text-shadow:0 0 8px var(--pip-glow); }
+
+.top-info { display:flex;gap:16px;font-size:10px;color:var(--text3);letter-spacing:1px;align-items:center; }
+.top-info span { color:var(--text2); }
+.top-info .val { color:var(--pip); }
+
+/* ── LEFT STATS ── */
+#stats {
+  grid-area:stats;
+  background:var(--bg2);
+  border-right:1px solid var(--border2);
+  overflow-y:auto;padding:16px 12px;
+  display:flex;flex-direction:column;gap:14px;
+}
+#stats::-webkit-scrollbar{width:3px}
+#stats::-webkit-scrollbar-thumb{background:var(--border2)}
+
+.s-panel { border:1px solid var(--border2);border-radius:2px;overflow:hidden; }
+.s-title {
+  font-size:9px;letter-spacing:3px;color:var(--text3);padding:6px 10px;
+  background:rgba(0,0,0,0.4);border-bottom:1px solid var(--border2);
+  text-transform:uppercase;display:flex;align-items:center;gap:6px;
+}
+.s-title::before{content:'◈';color:var(--pip-dark);}
+.s-body{padding:10px;}
+
+/* SPECIAL stats */
+.special-grid { display:flex;flex-direction:column;gap:4px; }
+.special-row {
+  display:flex;align-items:center;gap:8px;padding:4px 6px;
+  border-radius:2px;cursor:default;transition:background 0.1s;
+}
+.special-row:hover{background:var(--pip-faint);}
+.sp-letter {
+  font-family:'Russo One',sans-serif;font-size:16px;color:var(--pip);
+  width:18px;text-align:center;text-shadow:0 0 10px var(--pip-glow);
+}
+.sp-name{font-size:9px;color:var(--text3);flex:1;letter-spacing:1px;}
+.sp-bars{display:flex;gap:2px;}
+.sp-pip{width:8px;height:12px;border:1px solid var(--border2);border-radius:1px;transition:background 0.3s;}
+.sp-pip.filled{background:var(--pip);box-shadow:0 0 4px var(--pip-dark);}
+
+/* HP/AP/RAD */
+.vital-row{display:flex;flex-direction:column;gap:3px;margin-bottom:8px;}
+.vital-label{font-size:9px;color:var(--text3);letter-spacing:2px;display:flex;justify-content:space-between;}
+.vital-label span{color:var(--text2);}
+.vital-bar{height:7px;background:rgba(0,0,0,0.5);border:1px solid var(--border2);border-radius:1px;overflow:hidden;}
+.vital-fill{height:100%;border-radius:1px;transition:width 0.5s;}
+.hp-fill{background:linear-gradient(90deg,#c0392b,#e74c3c);box-shadow:0 0 4px rgba(231,76,60,0.5);}
+.ap-fill{background:linear-gradient(90deg,#2980b9,#3498db);box-shadow:0 0 4px rgba(52,152,219,0.4);}
+.rad-fill{background:linear-gradient(90deg,var(--pip-dark),var(--pip));box-shadow:0 0 4px var(--pip-glow);}
+
+/* Caps / XP */
+.caps-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);}
+.caps-row:last-child{border:none;}
+.caps-key{font-size:9px;color:var(--text3);letter-spacing:1px;}
+.caps-val{font-size:12px;color:var(--pip);font-family:'Russo One',sans-serif;}
+
+/* XP bar */
+.xp-bar-wrap{height:5px;background:var(--bg3);border:1px solid var(--border);border-radius:1px;overflow:hidden;margin-top:4px;}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--pip-dark),var(--pip));transition:width 1s;}
+
+/* Inventory list */
+.inv-list{display:flex;flex-direction:column;gap:3px;}
+.inv-entry{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:4px 6px;border-radius:1px;font-size:10px;cursor:default;
+  border-left:2px solid transparent;transition:all 0.1s;
+}
+.inv-entry:hover{background:var(--pip-faint);border-left-color:var(--pip-dark);}
+.inv-name{color:var(--text2);flex:1;}
+.inv-qty{color:var(--text3);font-size:9px;}
+.inv-entry.weapon .inv-name{color:#ffb000;}
+.inv-entry.armor .inv-name{color:#28c8ff;}
+.inv-entry.aid .inv-name{color:#e74c3c;}
+.inv-entry.misc .inv-name{color:var(--pip);}
+.inv-entry.junk .inv-name{color:var(--text3);}
+
+/* ── MAIN NARRATIVE ── */
+#main {
+  grid-area:main;display:flex;flex-direction:column;overflow:hidden;
+  position:relative;
+}
+
+#narrative-scroll{flex:1;overflow-y:auto;padding:18px 22px;scroll-behavior:smooth;}
+#narrative-scroll::-webkit-scrollbar{width:4px;}
+#narrative-scroll::-webkit-scrollbar-track{background:var(--bg);}
+#narrative-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+.msg{margin-bottom:18px;animation:msgIn 0.35s ease-out;}
+@keyframes msgIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+.msg-narr{
+  padding:14px 16px;background:var(--bg2);
+  border-left:2px solid var(--pip-dark);border-radius:0 3px 3px 0;
+  font-size:13px;line-height:1.8;color:var(--text);
+}
+.msg-narr .loc-tag{
+  font-size:9px;letter-spacing:3px;color:var(--text3);
+  display:block;margin-bottom:8px;text-transform:uppercase;
+}
+.msg-narr .loc-tag::before{content:'📍 ';}
+
+.msg-player{
+  text-align:right;padding:8px 14px;
+  background:rgba(0,255,65,0.06);
+  border-right:2px solid var(--pip);
+  border-radius:3px 0 0 3px;
+  font-size:12px;color:var(--pip);
+}
+.msg-player::before{content:'[SOLE SURVIVOR] ';font-size:9px;color:var(--text3);}
+
+.msg-system{
+  text-align:center;font-size:9px;letter-spacing:3px;
+  color:var(--text4);padding:5px;text-transform:uppercase;
+}
+
+.msg-alert{
+  padding:9px 14px;background:rgba(255,60,40,0.08);
+  border:1px solid rgba(255,60,40,0.3);border-radius:2px;
+  font-size:11px;color:var(--red);letter-spacing:0.5px;
+}
+.msg-alert::before{content:'⚠ ALERT: ';}
+
+.msg-loot{
+  padding:9px 14px;background:rgba(255,176,0,0.08);
+  border:1px solid rgba(255,176,0,0.25);border-radius:2px;
+  font-size:11px;color:var(--amber);
+}
+.msg-loot::before{content:'◈ ';}
+
+.msg-xp{
+  padding:7px 14px;background:rgba(0,255,65,0.05);
+  border:1px solid rgba(0,255,65,0.15);border-radius:2px;
+  font-size:11px;color:var(--pip-dim);letter-spacing:1px;
+}
+.msg-xp::before{content:'⬆ XP + ';}
+
+/* Choices */
+.choices{display:flex;flex-direction:column;gap:5px;margin-top:12px;}
+.c-btn{
+  background:transparent;border:1px solid var(--border2);
+  color:var(--text2);font-family:'Share Tech Mono',monospace;
+  font-size:11.5px;padding:9px 14px;text-align:left;cursor:pointer;
+  letter-spacing:0.3px;transition:all 0.15s;border-radius:2px;
+  position:relative;overflow:hidden;
+}
+.c-btn::before{
+  content:'';position:absolute;inset:0;
+  background:var(--pip-faint);opacity:0;transition:opacity 0.15s;
+}
+.c-btn:hover{border-color:var(--pip-dark);color:var(--pip);}
+.c-btn:hover::before{opacity:1;}
+.c-btn.risky{border-color:rgba(255,176,0,0.3);}
+.c-btn.risky:hover{border-color:var(--amber);color:var(--amber);}
+.c-btn.danger{border-color:rgba(255,60,40,0.3);}
+.c-btn.danger:hover{border-color:var(--red);color:var(--red);}
+.c-btn.speech{border-color:rgba(40,200,255,0.3);}
+.c-btn.speech:hover{border-color:var(--blue);color:var(--blue);}
+.c-btn:disabled{opacity:0.3;cursor:not-allowed;}
+.c-num{color:var(--amber);margin-right:8px;font-size:10px;}
+.c-tag{font-size:9px;margin-left:6px;padding:1px 5px;border-radius:2px;}
+.c-tag.risky-tag{background:rgba(255,176,0,0.15);color:var(--amber);}
+.c-tag.danger-tag{background:rgba(255,60,40,0.12);color:var(--red);}
+.c-tag.speech-tag{background:rgba(40,200,255,0.1);color:var(--blue);}
+
+/* Typing */
+.typing{
+  padding:12px 16px;background:var(--bg2);
+  border-left:2px solid var(--border2);border-radius:0 3px 3px 0;
+  display:flex;gap:5px;align-items:center;
+}
+.t-dot{width:5px;height:5px;background:var(--pip-dark);border-radius:50%;animation:tdot 1.2s infinite;}
+.t-dot:nth-child(2){animation-delay:.2s}
+.t-dot:nth-child(3){animation-delay:.4s}
+@keyframes tdot{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+
+/* VATS display */
+.vats-panel{
+  padding:12px 16px;background:rgba(40,200,255,0.05);
+  border:1px solid rgba(40,200,255,0.2);border-radius:2px;margin-top:6px;
+}
+.vats-title{font-size:9px;letter-spacing:3px;color:var(--blue);margin-bottom:8px;text-transform:uppercase;}
+.vats-targets{display:flex;flex-direction:column;gap:5px;}
+.vats-target{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:rgba(0,0,0,0.3);border:1px solid rgba(40,200,255,0.15);border-radius:2px;font-size:11px;}
+.vats-name{color:var(--text2);}
+.vats-hit{color:var(--blue);font-size:12px;font-family:'Russo One',sans-serif;}
+.vats-btn{background:rgba(40,200,255,0.1);border:1px solid rgba(40,200,255,0.4);color:var(--blue);font-family:'Share Tech Mono',monospace;font-size:10px;padding:3px 10px;cursor:pointer;border-radius:2px;transition:all 0.1s;}
+.vats-btn:hover{background:rgba(40,200,255,0.2);}
+
+/* ── RIGHT SIDEBAR ── */
+#sidebar{
+  grid-area:sidebar;background:var(--bg2);
+  border-left:1px solid var(--border2);
+  overflow-y:auto;padding:14px 12px;
+  display:flex;flex-direction:column;gap:12px;
+}
+#sidebar::-webkit-scrollbar{width:3px;}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border2);}
+
+/* Quest */
+.q-item{padding:6px 0;border-bottom:1px solid var(--border);font-size:10px;}
+.q-item:last-child{border:none;}
+.q-name{color:var(--pip);font-size:10px;letter-spacing:.5px;display:block;margin-bottom:2px;}
+.q-name.main-quest{color:var(--amber);}
+.q-desc{color:var(--text3);font-size:9px;line-height:1.5;}
+
+/* Perks */
+.perk-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:10px;}
+.perk-item:last-child{border:none;}
+.perk-icon{font-size:16px;width:22px;text-align:center;}
+.perk-name{color:var(--text2);display:block;font-size:10px;}
+.perk-desc{color:var(--text3);font-size:9px;}
+
+/* Companions */
+.companion-card{
+  padding:10px;background:var(--bg3);border:1px solid var(--border2);border-radius:2px;
+}
+.comp-name{font-family:'Russo One',sans-serif;font-size:12px;color:var(--pip);letter-spacing:1px;}
+.comp-status{font-size:9px;color:var(--text3);margin:2px 0 6px;letter-spacing:1px;}
+.comp-affinity{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--text3);}
+.aff-bar{flex:1;height:4px;background:var(--bg);border:1px solid var(--border2);border-radius:2px;overflow:hidden;}
+.aff-fill{height:100%;background:linear-gradient(90deg,var(--pip-dark),var(--pip));transition:width 0.5s;}
+
+/* ── INPUT ── */
+#input-area{
+  grid-area:input;background:var(--bg2);
+  border-top:1px solid var(--border2);
+  padding:10px 16px;display:flex;gap:10px;align-items:center;
+  position:relative;
+}
+#input-area::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--pip-dark),var(--pip),var(--pip-dark),transparent);
+}
+.input-pfx{color:var(--pip);font-size:13px;flex-shrink:0;}
+#p-input{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--pip);font-family:'Share Tech Mono',monospace;
+  font-size:12px;letter-spacing:.5px;caret-color:var(--pip);
+}
+#p-input::placeholder{color:var(--text4);}
+#p-input:disabled{opacity:.4;}
+#send-btn{
+  background:transparent;border:1px solid var(--border2);
+  color:var(--text2);font-family:'Share Tech Mono',monospace;
+  font-size:10px;letter-spacing:2px;padding:6px 12px;cursor:pointer;
+  transition:all .15s;border-radius:2px;flex-shrink:0;
+}
+#send-btn:hover{background:var(--pip-faint);border-color:var(--pip-dark);color:var(--pip);}
+#send-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* ── START SCREEN ── */
+#start{
+  position:fixed;inset:0;background:var(--bg);z-index:500;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;
+}
+
+.fallout-title{
+  font-family:'Russo One',sans-serif;
+  font-size:clamp(44px,7vw,80px);
+  letter-spacing:8px;
+  color:var(--pip);
+  text-shadow:0 0 40px var(--pip-glow),0 0 80px rgba(0,255,65,0.1);
+  line-height:1;
+}
+.fallout-num{
+  font-family:'Russo One',sans-serif;
+  font-size:clamp(60px,10vw,110px);
+  color:var(--pip);
+  text-shadow:0 0 60px var(--pip-glow);
+  line-height:0.9;
+  -webkit-text-stroke:2px var(--pip-dark);
+}
+.fallout-sub{font-size:11px;letter-spacing:6px;color:var(--text3);text-transform:uppercase;}
+.vault-tec{font-size:10px;color:var(--text4);letter-spacing:4px;margin-top:4px;}
+
+.divider{width:240px;height:1px;background:linear-gradient(90deg,transparent,var(--pip-dark),transparent);}
+
+/* SPECIAL allocation */
+.special-alloc{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:500px;}
+.sp-card{
+  width:64px;text-align:center;padding:10px 6px;
+  border:1px solid var(--border2);border-radius:2px;
+  cursor:default;background:var(--bg2);transition:border-color 0.15s;
+}
+.sp-card-letter{font-family:'Russo One',sans-serif;font-size:22px;color:var(--pip);text-shadow:0 0 10px var(--pip-glow);}
+.sp-card-name{font-size:8px;color:var(--text3);letter-spacing:1px;margin:2px 0;text-transform:uppercase;}
+.sp-card-val{font-family:'Russo One',sans-serif;font-size:18px;color:var(--pip-dim);}
+.sp-card-btns{display:flex;justify-content:space-between;margin-top:4px;}
+.sp-btn{
+  background:transparent;border:1px solid var(--border2);
+  color:var(--text3);font-family:'Share Tech Mono',monospace;
+  font-size:12px;width:22px;cursor:pointer;transition:all .1s;
+  border-radius:1px;
+}
+.sp-btn:hover{border-color:var(--pip-dark);color:var(--pip);}
+
+.pts-left{font-size:11px;color:var(--text2);letter-spacing:2px;}
+.pts-left span{color:var(--pip);font-family:'Russo One',sans-serif;font-size:14px;}
+
+/* Name input */
+.name-row{display:flex;gap:10px;align-items:center;}
+.name-label{font-size:10px;color:var(--text3);letter-spacing:2px;}
+#char-name{
+  background:var(--bg2);border:1px solid var(--border2);
+  color:var(--pip);font-family:'Share Tech Mono',monospace;
+  font-size:13px;padding:8px 12px;outline:none;
+  caret-color:var(--pip);width:200px;
+}
+#char-name:focus{border-color:var(--pip-dark);}
+
+.enter-btn{
+  font-family:'Russo One',sans-serif;font-size:15px;
+  letter-spacing:5px;padding:14px 50px;background:transparent;
+  border:1px solid var(--pip-dark);color:var(--pip);cursor:pointer;
+  transition:all .2s;text-transform:uppercase;
+  box-shadow:0 0 20px rgba(0,255,65,0.08);
+}
+.enter-btn:hover{background:var(--pip-faint);border-color:var(--pip);box-shadow:0 0 30px var(--pip-glow);}
+.enter-btn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* Radio button style background music note */
+.radio-label{font-size:9px;color:var(--text4);letter-spacing:2px;}
+
+/* Death screen */
+#death-screen{
+  position:fixed;inset:0;background:rgba(0,0,0,0.95);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;z-index:999;
+}
+.death-title{font-family:'Russo One',sans-serif;font-size:56px;letter-spacing:6px;color:var(--red);text-shadow:0 0 30px rgba(255,60,40,0.5);}
+.death-sub{font-size:11px;letter-spacing:4px;color:var(--text3);}
+</style>
+</head>
+<body>
+<div class="sweep-line"></div>
+
+<!-- DEATH SCREEN -->
+<div id="death-screen">
+  <div class="death-title">YOU DIED</div>
+  <div class="death-sub">THE COMMONWEALTH CLAIMS ANOTHER WANDERER</div>
+  <div id="death-stats" style="font-size:11px;color:var(--text3);letter-spacing:2px;margin-top:8px;"></div>
+  <button onclick="location.reload()" style="margin-top:16px;font-family:'Russo One',sans-serif;font-size:14px;letter-spacing:4px;padding:12px 36px;background:transparent;border:1px solid var(--red);color:var(--red);cursor:pointer;transition:all .2s;" onmouseover="this.style.background='rgba(255,60,40,0.1)'" onmouseout="this.style.background='transparent'">LOAD LAST SAVE</button>
+</div>
+
+<!-- START SCREEN -->
+<div id="start">
+  <div style="text-align:center">
+    <div class="fallout-title">FALLOUT</div>
+    <div class="fallout-num">4</div>
+    <div class="fallout-sub">The Commonwealth — Boston Wasteland</div>
+    <div class="vault-tec">WAR. WAR NEVER CHANGES.</div>
+  </div>
+  <div class="divider"></div>
+
+  <!-- Character name -->
+  <div class="name-row">
+    <span class="name-label">SURVIVOR NAME:</span>
+    <input type="text" id="char-name" placeholder="Enter your name..." maxlength="20" value="Nate" />
+  </div>
+
+  <!-- SPECIAL -->
+  <div style="font-size:9px;letter-spacing:3px;color:var(--text3);">ALLOCATE S.P.E.C.I.A.L. POINTS &nbsp;—&nbsp; <span class="pts-left">Points remaining: <span id="pts-display">21</span></span></div>
+  <div class="special-alloc" id="special-alloc"></div>
+
+  <button class="enter-btn" id="start-btn" onclick="startGame()">ENTER THE WASTELAND</button>
+  <div class="radio-label">♫ DIAMOND CITY RADIO — PLAYING ACROSS THE WASTELAND</div>
+</div>
+
+<!-- MAIN GAME -->
+<div id="app" style="display:none">
+  <div id="pipboy-top">
+    <div class="pip-logo">
+      PIP-BOY 3000 <span class="vault">MARK IV</span>
+    </div>
+    <div class="top-tabs">
+      <div class="top-tab active" id="tab-stat" onclick="switchTab('stat')">STAT</div>
+      <div class="top-tab" id="tab-inv" onclick="switchTab('inv')">INV</div>
+      <div class="top-tab" id="tab-data" onclick="switchTab('data')">DATA</div>
+      <div class="top-tab" id="tab-map" onclick="switchTab('map')">MAP</div>
+    </div>
+    <div class="top-info">
+      <span>CAPS</span> <span class="val" id="top-caps">0</span>
+      <span>LVL</span> <span class="val" id="top-lvl">1</span>
+      <span>LOCATION:</span> <span class="val" id="top-loc">—</span>
+    </div>
+  </div>
+
+  <div id="stats">
+    <!-- Vitals -->
+    <div class="s-panel">
+      <div class="s-title">Vitals</div>
+      <div class="s-body">
+        <div class="vital-row">
+          <div class="vital-label">HP <span id="hp-label">100/100</span></div>
+          <div class="vital-bar"><div class="vital-fill hp-fill" id="hp-bar" style="width:100%"></div></div>
+        </div>
+        <div class="vital-row">
+          <div class="vital-label">AP <span id="ap-label">100/100</span></div>
+          <div class="vital-bar"><div class="vital-fill ap-fill" id="ap-bar" style="width:100%"></div></div>
+        </div>
+        <div class="vital-row" style="margin-bottom:0">
+          <div class="vital-label">RAD <span id="rad-label">0</span></div>
+          <div class="vital-bar"><div class="vital-fill rad-fill" id="rad-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SPECIAL -->
+    <div class="s-panel">
+      <div class="s-title">S.P.E.C.I.A.L.</div>
+      <div class="s-body">
+        <div class="special-grid" id="special-display"></div>
+      </div>
+    </div>
+
+    <!-- Caps / XP -->
+    <div class="s-panel">
+      <div class="s-title">Progress</div>
+      <div class="s-body">
+        <div class="caps-row"><span class="caps-key">CAPS</span><span class="caps-val" id="caps-val">0</span></div>
+        <div class="caps-row"><span class="caps-key">LEVEL</span><span class="caps-val" id="level-val">1</span></div>
+        <div class="caps-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+          <div style="display:flex;justify-content:space-between;width:100%">
+            <span class="caps-key">XP</span><span style="font-size:9px;color:var(--text3)" id="xp-label">0 / 200</span>
+          </div>
+          <div class="xp-bar-wrap" style="width:100%"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory panel (shown in INV tab) -->
+    <div class="s-panel" id="inv-panel" style="display:none">
+      <div class="s-title">Inventory</div>
+      <div class="s-body"><div class="inv-list" id="inv-list"></div></div>
+    </div>
+  </div>
+
+  <!-- Narrative -->
+  <div id="main">
+    <div id="narrative-scroll"></div>
+  </div>
+
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <!-- Companion -->
+    <div class="s-panel" id="companion-panel">
+      <div class="s-title">Companion</div>
+      <div class="s-body" id="companion-body">
+        <div style="font-size:10px;color:var(--text4);letter-spacing:1px;">No companion</div>
+      </div>
+    </div>
+
+    <!-- Quests -->
+    <div class="s-panel">
+      <div class="s-title">Quests</div>
+      <div class="s-body" id="quest-body"></div>
+    </div>
+
+    <!-- Perks -->
+    <div class="s-panel">
+      <div class="s-title">Perks</div>
+      <div class="s-body" id="perks-body"></div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div id="input-area">
+    <span class="input-pfx">></span>
+    <input type="text" id="p-input" placeholder="What do you do? (free type or click a choice)" autocomplete="off" />
+    <button id="send-btn" onclick="sendMsg()">SEND</button>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════
+// SPECIAL BUILDER (Start Screen)
+// ════════════════════════════════════
+const SPECIAL_NAMES = ['Strength','Perception','Endurance','Charisma','Intelligence','Agility','Luck'];
+const SPECIAL_LETTERS = ['S','P','E','C','I','A','L'];
+let specialVals = [5,5,5,5,5,5,5]; // default
+let ptsLeft = 21;
+
+function buildSpecialUI() {
+  const wrap = document.getElementById('special-alloc');
+  wrap.innerHTML = '';
+  SPECIAL_LETTERS.forEach((l,i) => {
+    const card = document.createElement('div');
+    card.className = 'sp-card';
+    card.innerHTML = `
+      <div class="sp-card-letter">${l}</div>
+      <div class="sp-card-name">${SPECIAL_NAMES[i].substring(0,4)}</div>
+      <div class="sp-card-val" id="sv-${i}">${specialVals[i]}</div>
+      <div class="sp-card-btns">
+        <button class="sp-btn" onclick="adjustSP(${i},-1)">−</button>
+        <button class="sp-btn" onclick="adjustSP(${i},+1)">+</button>
+      </div>`;
+    wrap.appendChild(card);
+  });
+}
+
+function adjustSP(i, delta) {
+  const newVal = specialVals[i] + delta;
+  if (newVal < 1 || newVal > 10) return;
+  if (delta > 0 && ptsLeft <= 0) return;
+  specialVals[i] = newVal;
+  ptsLeft -= delta;
+  document.getElementById(`sv-${i}`).textContent = newVal;
+  document.getElementById('pts-display').textContent = ptsLeft;
+}
+buildSpecialUI();
+
+// ════════════════════════════════════
+// GAME STATE
+// ════════════════════════════════════
+let GS = {
+  name: 'Nate',
+  hp: 100, maxHp: 100,
+  ap: 100, maxAp: 100,
+  rad: 0,
+  caps: 247,
+  xp: 0, level: 1, xpToNext: 200,
+  special: [...specialVals],
+  location: 'Sanctuary Hills',
+  inventory: [],
+  quests: [],
+  perks: [],
+  companion: null,
+  companionAffinity: 0,
+  history: [],
+  thinking: false,
+  kills: 0,
+};
+
+const STARTING_INVENTORY = {
+  'Vault Dweller': [
+    {n:'10mm Pistol',t:'weapon',q:'1x',d:'Standard sidearm'},
+    {n:'10mm Rounds',t:'misc',q:'48x',d:'Pistol ammo'},
+    {n:'Stimpak',t:'aid',q:'3x',d:'Heals 30HP'},
+    {n:'Rad-X',t:'aid',q:'2x',d:'Radiation resist'},
+    {n:'RadAway',t:'aid',q:'2x',d:'Removes radiation'},
+    {n:'Vault 111 Jumpsuit',t:'armor',q:'1x',d:'+1 END, poor protection'},
+    {n:'Bobby Pin',t:'misc',q:'5x',d:'For lockpicking'},
+  ],
+};
+
+function startGame() {
+  const nameEl = document.getElementById('char-name');
+  GS.name = nameEl.value.trim() || 'Nate';
+  GS.special = [...specialVals];
+  GS.inventory = JSON.parse(JSON.stringify(STARTING_INVENTORY['Vault Dweller']));
+  GS.maxHp = 80 + GS.special[2] * 5; // Endurance affects HP
+  GS.hp = GS.maxHp;
+  GS.caps = 200 + GS.special[5] * 10; // Luck affects starting caps
+  GS.quests = [
+    {name:'WAR NEVER CHANGES',main:true,active:true,desc:'Emerge from Vault 111 and find your son Shaun.'},
+    {name:'OUT OF TIME',main:true,active:true,desc:'Explore Sanctuary Hills and find any survivors.'},
+  ];
+  GS.perks = buildPerks();
+
+  document.getElementById('start').style.display = 'none';
+  document.getElementById('app').style.display = 'grid';
+  renderAll();
+  startClock();
+
+  setTimeout(() => {
+    addSysMsg('— PIP-BOY 3000 MK IV INITIALIZED —');
+    callAI(null, true);
+  }, 400);
+}
+
+function buildPerks() {
+  const perks = [];
+  if (GS.special[0] >= 6) perks.push({icon:'💪',name:'Iron Fist',desc:'Unarmed dmg +20%'});
+  if (GS.special[1] >= 6) perks.push({icon:'👁️',name:'Rifleman',desc:'Non-auto rifle dmg +20%'});
+  if (GS.special[3] >= 6) perks.push({icon:'🗣️',name:'Cap Collector',desc:'Better vendor prices'});
+  if (GS.special[4] >= 6) perks.push({icon:'🔧',name:'Scrapper',desc:'More components from junk'});
+  if (GS.special[5] >= 6) perks.push({icon:'🎯',name:'Gunslinger',desc:'Pistol dmg +20%'});
+  if (GS.special[6] >= 6) perks.push({icon:'🍀',name:'Fortune Finder',desc:'Find more caps'});
+  if (perks.length === 0) perks.push({icon:'🎖️',name:'Survivor',desc:'You made it out of Vault 111'});
+  return perks;
+}
+
+// ════════════════════════════════════
+// AI CALL
+// ════════════════════════════════════
+async function callAI(action, isIntro=false) {
+  if (GS.thinking) return;
+  GS.thinking = true;
+  setInput(false);
+  const typing = showTyping();
+
+  const invStr = GS.inventory.map(i=>`${i.n}(${i.q})`).join(', ');
+  const specStr = SPECIAL_LETTERS.map((l,i)=>`${l}:${GS.special[i]}`).join(' ');
+  const questStr = GS.quests.filter(q=>q.active).map(q=>q.name).join(', ');
+
+  const sys = `You are the Game Master for a Fallout 4 roleplaying game set in the post-apocalyptic Commonwealth (Boston area, 2287, 210 years after the Great War of 2077).
+
+PLAYER: ${GS.name}
+LOCATION: ${GS.location}
+HP: ${GS.hp}/${GS.maxHp} | AP: ${GS.ap} | RAD: ${GS.rad}
+CAPS: ${GS.caps} | LEVEL: ${GS.level}
+SPECIAL: ${specStr}
+INVENTORY: ${invStr}
+ACTIVE QUESTS: ${questStr}
+COMPANION: ${GS.companion ? GS.companion.name : 'None'}
+KILLS: ${GS.kills}
+
+RULES:
+1. Write vivid, atmospheric descriptions of the post-apocalyptic Boston Commonwealth. Reference real Fallout 4 locations: Sanctuary Hills, Concord, Diamond City, Goodneighbor, the Institute, Brotherhood of Steel, Railroad, Minutemen, Raiders, Gunners, Super Mutants, Ghouls, Deathclaws, Radscorpions, Brahmin, etc.
+2. Always end with 3-4 choices as JSON: CHOICES:[{"text":"...","type":"normal/risky/danger/speech","vats":false}]
+   - type: normal=white, risky=amber, danger=red, speech=blue (persuasion)
+   - vats: true if this triggers a combat VATS sequence
+3. Include a state update JSON: STATE:{"hp_delta":0,"ap_delta":0,"rad_delta":0,"caps_delta":0,"xp_gain":0,"location":"...","new_items":[],"companion":null,"quest_updates":[],"kill_count":0,"vats_targets":[]}
+   - vats_targets: array of {name,hit_chance} when in combat
+4. Keep narrative to 3-5 paragraphs. Gritty, sometimes darkly humorous (Fallout tone). Reference lore: the Great War, pre-war America's retro-future aesthetic, Vault-Tec, RobCo, Nuka-Cola.
+5. The player emerged from Vault 111 to find their spouse murdered and son Shaun kidnapped 210 years ago. They want to find Shaun.
+6. Be consistent with Fallout 4 lore. The Sole Survivor is a pre-war veteran or lawyer depending on gender choice. Reference the Institute ("the boogeyman of the Commonwealth"), synths, and faction politics.
+
+Tone: Post-apocalyptic noir with dark humor. Think: rusted cars, skeletal remains in pre-war clothes, Nuka-Cola machines, classical music on Diamond City Radio, philosophical raiders.`;
+
+  const userMsg = isIntro
+    ? `Begin the game. ${GS.name} has just emerged from Vault 111 into the sunlight of a ruined Sanctuary Hills. The door to the vault grinds shut behind them — they can't go back. It's a grey morning, 210 years after the nuclear war. The once-suburban neighborhood is rubble and dead trees. A Protectron robot wanders in the distance. ${GS.name}'s mission: find Shaun. Open with a powerful, atmospheric scene. Describe what they see and hear. Give opening choices.`
+    : action;
+
+  GS.history.push({role:'user',content:userMsg});
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:sys,
+        messages:GS.history,
+      })
+    });
+    const data = await res.json();
+    const raw = data.content?.map(c=>c.text||'').join('')||'';
+    GS.history.push({role:'assistant',content:raw});
+
+    typing.remove();
+
+    // Parse choices
+    let choices=[];
+    const cm = raw.match(/CHOICES:\s*(\[[\s\S]*?\])/);
+    if(cm){try{choices=JSON.parse(cm[1]);}catch(e){}}
+
+    // Parse state
+    const sm = raw.match(/STATE:\s*(\{[\s\S]*?\})/);
+    let vatsTargets=[];
+    if(sm){try{const u=JSON.parse(sm[1]);applyState(u);vatsTargets=u.vats_targets||[];}catch(e){}}
+
+    // Clean display text
+    let txt = raw.replace(/CHOICES:\s*\[[\s\S]*?\]/g,'').replace(/STATE:\s*\{[\s\S]*?\}/g,'').trim();
+
+    addNarr(txt, choices, vatsTargets);
+  } catch(e) {
+    typing.remove();
+    addNarr('Static crackles on your Pip-Boy. The Commonwealth stretches out before you, dangerous and alive.', [
+      {text:'Continue forward',type:'normal'},
+      {text:'Check your Pip-Boy',type:'normal'},
+      {text:'Find cover immediately',type:'risky'},
+    ], []);
+  }
+
+  GS.thinking = false;
+  setInput(true);
+}
+
+function applyState(u) {
+  if(u.hp_delta){GS.hp=Math.max(0,Math.min(GS.maxHp,GS.hp+u.hp_delta));}
+  if(u.ap_delta){GS.ap=Math.max(0,Math.min(GS.maxAp,GS.ap+u.ap_delta));}
+  if(u.rad_delta){GS.rad=Math.max(0,Math.min(100,GS.rad+u.rad_delta));}
+  if(u.caps_delta){GS.caps=Math.max(0,GS.caps+u.caps_delta);}
+  if(u.location){GS.location=u.location;}
+  if(u.xp_gain&&u.xp_gain>0){
+    addXpMsg(u.xp_gain);
+    GS.xp+=u.xp_gain;
+    if(GS.xp>=GS.xpToNext){GS.level++;GS.xp-=GS.xpToNext;GS.xpToNext=Math.floor(GS.xpToNext*1.15);addSysMsg(`LEVEL UP! Now level ${GS.level}`);}
+  }
+  if(u.kill_count){GS.kills+=u.kill_count;}
+  if(u.new_items?.length){
+    u.new_items.forEach(it=>{GS.inventory.push(it);addLootMsg(`${it.n} — ${it.d}`);});
+  }
+  if(u.companion){
+    GS.companion=u.companion;
+    addSysMsg(`${u.companion.name} has joined you.`);
+  }
+  if(u.quest_updates?.length){
+    u.quest_updates.forEach(qu=>{
+      const q=GS.quests.find(q=>q.name===qu.name);
+      if(q){q.active=qu.active;q.desc=qu.desc||q.desc;}
+      else GS.quests.push({name:qu.name,main:qu.main||false,active:qu.active,desc:qu.desc||''});
+    });
+  }
+  renderAll();
+  if(GS.hp<=0) setTimeout(showDeath,600);
+}
+
+// ════════════════════════════════════
+// RENDER
+// ════════════════════════════════════
+function renderAll(){
+  // Vitals
+  document.getElementById('hp-label').textContent=`${GS.hp}/${GS.maxHp}`;
+  document.getElementById('hp-bar').style.width=(GS.hp/GS.maxHp*100)+'%';
+  const hpColor = GS.hp<25?'linear-gradient(90deg,#8b0000,#c0392b)':GS.hp<50?'linear-gradient(90deg,#c0392b,#e74c3c)':'linear-gradient(90deg,#c0392b,#e74c3c)';
+  document.getElementById('hp-bar').style.background=hpColor;
+  document.getElementById('ap-label').textContent=`${GS.ap}/${GS.maxAp}`;
+  document.getElementById('ap-bar').style.width=(GS.ap/GS.maxAp*100)+'%';
+  document.getElementById('rad-label').textContent=GS.rad;
+  document.getElementById('rad-bar').style.width=GS.rad+'%';
+
+  // SPECIAL display
+  const sd=document.getElementById('special-display');
+  sd.innerHTML='';
+  SPECIAL_LETTERS.forEach((l,i)=>{
+    const row=document.createElement('div');row.className='special-row';
+    let pips='';
+    for(let p=0;p<10;p++) pips+=`<div class="sp-pip${p<GS.special[i]?' filled':''}"></div>`;
+    row.innerHTML=`<span class="sp-letter">${l}</span><span class="sp-name">${SPECIAL_NAMES[i]}</span><div class="sp-bars">${pips}</div>`;
+    sd.appendChild(row);
+  });
+
+  // Caps / XP
+  document.getElementById('caps-val').textContent=GS.caps.toLocaleString();
+  document.getElementById('level-val').textContent=GS.level;
+  document.getElementById('xp-label').textContent=`${GS.xp} / ${GS.xpToNext}`;
+  document.getElementById('xp-bar').style.width=(GS.xp/GS.xpToNext*100)+'%';
+  document.getElementById('top-caps').textContent=GS.caps;
+  document.getElementById('top-lvl').textContent=GS.level;
+  document.getElementById('top-loc').textContent=GS.location.split(' ')[0]+'...';
+
+  // Inventory
+  const il=document.getElementById('inv-list');
+  il.innerHTML='';
+  GS.inventory.forEach(it=>{
+    const d=document.createElement('div');d.className=`inv-entry ${it.t}`;
+    d.innerHTML=`<span class="inv-name">${it.n}</span><span class="inv-qty">${it.q}</span>`;
+    d.title=it.d;il.appendChild(d);
+  });
+
+  // Quests
+  const qb=document.getElementById('quest-body');
+  qb.innerHTML='';
+  GS.quests.filter(q=>q.active).forEach(q=>{
+    const d=document.createElement('div');d.className='q-item';
+    d.innerHTML=`<span class="q-name${q.main?' main-quest':''}">${q.name}</span><span class="q-desc">${q.desc.substring(0,80)}${q.desc.length>80?'...':''}</span>`;
+    qb.appendChild(d);
+  });
+
+  // Perks
+  const pb=document.getElementById('perks-body');
+  pb.innerHTML='';
+  GS.perks.forEach(p=>{
+    const d=document.createElement('div');d.className='perk-item';
+    d.innerHTML=`<span class="perk-icon">${p.icon}</span><div><span class="perk-name">${p.name}</span><span class="perk-desc">${p.desc}</span></div>`;
+    pb.appendChild(d);
+  });
+
+  // Companion
+  if(GS.companion){
+    const cb=document.getElementById('companion-body');
+    cb.innerHTML=`<div class="companion-card">
+      <div class="comp-name">${GS.companion.name}</div>
+      <div class="comp-status">${GS.companion.status||'Following'}</div>
+      <div class="comp-affinity">
+        <span>Affinity</span>
+        <div class="aff-bar"><div class="aff-fill" style="width:${GS.companionAffinity}%"></div></div>
+        <span>${GS.companionAffinity}%</span>
+      </div>
+    </div>`;
+  }
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.top-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('inv-panel').style.display = tab==='inv' ? 'block' : 'none';
+}
+
+// ════════════════════════════════════
+// NARRATIVE UI
+// ════════════════════════════════════
+function addNarr(text, choices, vatsTargets=[]) {
+  const sc=document.getElementById('narrative-scroll');
+  const div=document.createElement('div');div.className='msg';
+  const nd=document.createElement('div');nd.className='msg-narr';
+  nd.innerHTML=`<span class="loc-tag">${GS.location}</span>${text.replace(/\n/g,'<br>')}`;
+  div.appendChild(nd);
+
+  // VATS panel
+  if(vatsTargets.length>0){
+    const vd=document.createElement('div');vd.className='vats-panel';
+    vd.innerHTML=`<div class="vats-title">⬡ V.A.T.S. — TARGETING SYSTEM ACTIVE</div><div class="vats-targets">${
+      vatsTargets.map(t=>`<div class="vats-target"><span class="vats-name">${t.name}</span><span class="vats-hit">${t.hit_chance}%</span><button class="vats-btn" onclick="fireVats('${t.name}', this)">FIRE</button></div>`).join('')
+    }</div>`;
+    div.appendChild(vd);
+  }
+
+  // Choices
+  if(choices.length){
+    const cd=document.createElement('div');cd.className='choices';
+    choices.forEach((c,i)=>{
+      const btn=document.createElement('button');
+      btn.className=`c-btn ${c.type==='risky'?'risky':c.type==='danger'?'danger':c.type==='speech'?'speech':''}`;
+      const tag = c.type==='risky'?'<span class="c-tag risky-tag">RISKY</span>':c.type==='danger'?'<span class="c-tag danger-tag">DANGER</span>':c.type==='speech'?`<span class="c-tag speech-tag">[CHARISMA ${GS.special[3]}]</span>`:'';
+      btn.innerHTML=`<span class="c-num">[${i+1}]</span>${c.text}${tag}`;
+      btn.onclick=()=>{cd.querySelectorAll('.c-btn').forEach(b=>b.disabled=true);addPlayerMsg(c.text);callAI(c.text);};
+      cd.appendChild(btn);
+    });
+    div.appendChild(cd);
+  }
+  sc.appendChild(div);sc.scrollTop=sc.scrollHeight;
+}
+
+function fireVats(targetName, btn) {
+  btn.disabled=true;btn.textContent='FIRED';
+  addPlayerMsg(`[V.A.T.S.] Target: ${targetName}`);
+  callAI(`I use V.A.T.S. to target ${targetName} and fire.`);
+}
+
+function addPlayerMsg(t){
+  const sc=document.getElementById('narrative-scroll');
+  const d=document.createElement('div');d.className='msg';
+  d.innerHTML=`<div class="msg-player">${t}</div>`;
+  sc.appendChild(d);sc.scrollTop=sc.scrollHeight;
+}
+function addSysMsg(t){
+  const sc=document.getElementById('narrative-scroll');
+  const d=document.createElement('div');d.className='msg';
+  d.innerHTML=`<div class="msg-system">${t}</div>`;
+  sc.appendChild(d);sc.scrollTop=sc.scrollHeight;
+}
+function addLootMsg(t){
+  const sc=document.getElementById('narrative-scroll');
+  const d=document.createElement('div');d.className='msg';
+  d.innerHTML=`<div class="msg-loot">${t}</div>`;
+  sc.appendChild(d);sc.scrollTop=sc.scrollHeight;
+}
+function addXpMsg(xp){
+  const sc=document.getElementById('narrative-scroll');
+  const d=document.createElement('div');d.className='msg';
+  d.innerHTML=`<div class="msg-xp">${xp} XP earned</div>`;
+  sc.appendChild(d);sc.scrollTop=sc.scrollHeight;
+}
+function showTyping(){
+  const sc=document.getElementById('narrative-scroll');
+  const d=document.createElement('div');d.className='msg';
+  d.innerHTML=`<div class="typing"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div>`;
+  sc.appendChild(d);sc.scrollTop=sc.scrollHeight;return d;
+}
+
+function setInput(on){
+  document.getElementById('p-input').disabled=!on;
+  document.getElementById('send-btn').disabled=!on;
+}
+
+function sendMsg(){
+  const inp=document.getElementById('p-input');
+  const t=inp.value.trim();
+  if(!t||GS.thinking)return;
+  inp.value='';
+  addPlayerMsg(t);
+  callAI(t);
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('p-input')?.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg();});
+});
+window.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('p-input'))sendMsg();});
+
+// Clock
+function startClock(){
+  let h=8,m=15;
+  setInterval(()=>{
+    m+=2;if(m>=60){m=0;h=(h+1)%24;}
+    // No display needed, just for immersion
+  },4000);
+}
+
+function showDeath(){
+  const ds=document.getElementById('death-screen');
+  document.getElementById('death-stats').textContent=`CAPS: ${GS.caps} — KILLS: ${GS.kills} — LEVEL: ${GS.level}`;
+  ds.style.display='flex';
+}
+</script>
+<meta name="game-title" content="FALLOUT 4: THE COMMONWEALTH">
+<meta name="game-file" content="fallout4-rpg.html">
+<script src="game-utils.js"></script>
+</body>
+</html>
