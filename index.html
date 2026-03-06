@@ -78,6 +78,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;display:flex;ali
 .game-card[data-id="gemini7"]{--card-color:#00e5ff;--card-shadow:rgba(0,229,255,0.12)}
 .game-card[data-id="farcry"]{--card-color:#4caf50;--card-shadow:rgba(76,175,80,0.12)}
 .game-card[data-id="stalker"]{--card-color:#b8ff00;--card-shadow:rgba(184,255,0,0.10)}
+.game-card[data-id="fallout"]{--card-color:#00ff41;--card-shadow:rgba(0,255,65,0.10)}
 .badge-new{background:rgba(240,165,0,0.15)!important;color:var(--gold)!important;border-color:var(--gold)!important;animation:badgePulse 2s ease-in-out infinite}
 @keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(240,165,0,0.4)}50%{box-shadow:0 0 8px 2px rgba(240,165,0,0.2)}}
 .card-art{position:relative;height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -93,6 +94,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;display:flex;ali
 .card-art[data-id="gemini7"]{background:radial-gradient(ellipse at 50% 30%,rgba(0,229,255,0.1) 0%,transparent 55%),radial-gradient(ellipse at 30% 80%,rgba(0,80,120,0.12) 0%,transparent 55%),#000a0f}
 .card-art[data-id="farcry"]{background:radial-gradient(ellipse at 40% 40%,rgba(76,175,80,0.12) 0%,transparent 55%),radial-gradient(ellipse at 70% 75%,rgba(232,160,32,0.07) 0%,transparent 55%),#030a03}
 .card-art[data-id="stalker"]{background:radial-gradient(ellipse at 50% 40%,rgba(184,255,0,0.08) 0%,transparent 55%),radial-gradient(ellipse at 30% 80%,rgba(60,80,0,0.15) 0%,transparent 55%),#050800}
+.card-art[data-id="fallout"]{background:radial-gradient(ellipse at 50% 35%,rgba(0,255,65,0.09) 0%,transparent 55%),radial-gradient(ellipse at 70% 80%,rgba(0,100,20,0.12) 0%,transparent 55%),#030a04}
 .art-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px);background-size:28px 28px}
 .art-icon{font-size:80px;position:relative;z-index:2;opacity:0.75;filter:drop-shadow(0 0 28px var(--card-color));transition:all 0.4s cubic-bezier(.2,.8,.2,1)}
 .game-card:hover .art-icon{opacity:1;transform:scale(1.12) translateY(-4px)}
@@ -160,7 +162,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <li><a href="#features">Features</a></li>
     <li><a href="#suggest">Suggest</a></li>
   </ul>
-  <div class="nav-live"><div class="live-dot"></div>12 GAMES LIVE</div>
+  <div class="nav-live"><div class="live-dot"></div>13 GAMES LIVE</div>
 </nav>
 
 <section id="hero">
@@ -174,7 +176,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <a href="r6siege.html" class="btn-ghost">Play R6 Siege →</a>
   </div>
   <div class="hero-stats">
-    <div class="stat"><div class="stat-n">12</div><div class="stat-l">Games</div></div>
+    <div class="stat"><div class="stat-n">13</div><div class="stat-l">Games</div></div>
     <div class="stat"><div class="stat-n">∞</div><div class="stat-l">Free Plays</div></div>
     <div class="stat"><div class="stat-n">0</div><div class="stat-l">Downloads</div></div>
   </div>
@@ -379,7 +381,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       <div class="card-art" data-id="stalker">
         <div class="art-grid"></div>
         <div class="art-icon">☢️</div>
-        <div class="art-badge badge-new">NEW</div>
+        <div class="art-badge">SURVIVAL</div>
         <div class="art-players">🎮 Single Player</div>
       </div>
       <div class="card-body">
@@ -387,6 +389,22 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
         <div class="card-name">S.T.A.L.K.E.R.: INTO THE ZONE</div>
         <div class="card-desc">The Zone does not forgive the weak. A text-driven survival RPG dripping with radiation, anomalies, and dread. Scavenge, barter, and make it out alive — if you're prepared.</div>
         <div class="card-tags"><span class="tag">RPG</span><span class="tag">Survival</span><span class="tag">Text-Based</span><span class="tag">Atmosphere</span></div>
+        <div class="card-footer"><span class="card-play">▶ Play Now</span><span class="card-stars">★★★★★</span></div>
+      </div>
+    </a>
+
+    <a class="game-card" data-id="fallout" data-name="Fallout 4 The Commonwealth" data-added="13" href="fallout4-rpg.html">
+      <div class="card-art" data-id="fallout">
+        <div class="art-grid"></div>
+        <div class="art-icon">☢</div>
+        <div class="art-badge badge-new">NEW</div>
+        <div class="art-players">🎮 Single Player</div>
+      </div>
+      <div class="card-body">
+        <div class="card-genre">Post-Apocalyptic RPG</div>
+        <div class="card-name">FALLOUT 4: THE COMMONWEALTH</div>
+        <div class="card-desc">War never changes. Emerge from Vault 111 into the ruins of Boston, scavenge the wasteland, build your S.P.E.C.I.A.L. stats, and survive the Commonwealth in this Pip-Boy powered RPG.</div>
+        <div class="card-tags"><span class="tag">RPG</span><span class="tag">Post-Apocalyptic</span><span class="tag">Wasteland</span><span class="tag">Story</span></div>
         <div class="card-footer"><span class="card-play">▶ Play Now</span><span class="card-stars">★★★★★</span></div>
       </div>
     </a>
@@ -458,6 +476,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <a href="gemini7.html">Gemini-7</a>
     <a href="farcry-game.html">Far Cry: Outpost</a>
     <a href="stalker-rpg.html">S.T.A.L.K.E.R.</a>
+    <a href="fallout4-rpg.html">Fallout 4</a>
   </div>
   <div class="foot-copy">Free · Browser-Based · No Downloads <a href="admin.html" class="foot-owner-link" title="">⬡</a></div>
 </footer>
