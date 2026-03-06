@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEMINI-7</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Creepster&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#000; overflow:hidden; font-family:'Share Tech Mono',monospace; cursor:none; }
+  #c { display:block; width:100vw; height:100vh; }
+
+  #ui {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    pointer-events:none; z-index:10;
+  }
+
+  #crosshair {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:20px; height:20px; opacity:0.5;
+  }
+  #crosshair::before, #crosshair::after {
+    content:''; position:absolute; background:rgba(180,230,255,0.85);
+  }
+  #crosshair::before { width:1px; height:100%; left:50%; transform:translateX(-50%); }
+  #crosshair::after  { height:1px; width:100%; top:50%; transform:translateY(-50%); }
+
+  #oxy-wrap { position:absolute; top:24px; left:24px; width:180px; }
+  #oxy-label { color:#7fffb0; font-size:10px; letter-spacing:3px; margin-bottom:5px; }
+  #oxy-bg { width:100%; height:5px; background:rgba(255,255,255,0.08); border:1px solid rgba(127,255,176,0.25); }
+  #oxy-fill { height:100%; width:100%; background:#7fffb0; box-shadow:0 0 6px #7fffb0; transition:background .5s; }
+
+  #log-hud { position:absolute; top:58px; left:24px; color:rgba(127,255,176,0.5); font-size:10px; letter-spacing:2px; }
+
+  #threat-hud {
+    position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
+    color:rgba(255,60,60,0); font-size:10px; letter-spacing:5px; transition:color .3s;
+  }
+
+  #controls-hud {
+    position:absolute; bottom:20px; right:20px;
+    color:rgba(255,255,255,0.13); font-size:9px; letter-spacing:1px; line-height:1.9; text-align:right;
+  }
+
+  #flash-mode-hud {
+    position:absolute; bottom:20px; left:24px;
+    color:rgba(122,200,255,0.45); font-size:9px; letter-spacing:3px;
+  }
+
+  #scan {
+    position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:11;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+  }
+  #vignette {
+    position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:12;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.88) 100%);
+  }
+  #blood-flash {
+    position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:13;
+    background:rgba(180,0,0,0); transition:background .12s;
+  }
+  #static-c {
+    position:absolute; top:0; left:0; pointer-events:none; z-index:14; opacity:0;
+  }
+  #room-label {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-120px);
+    color:rgba(127,255,176,0); font-size:10px; letter-spacing:5px;
+    transition:color .4s; pointer-events:none; white-space:nowrap;
+  }
+
+  .screen {
+    position:absolute; top:0; left:0; width:100%; height:100%;
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    z-index:30; background:#000;
+  }
+  .screen.hidden { display:none; }
+
+  #title-screen h1 {
+    font-family:'Creepster',cursive;
+    font-size:clamp(44px,9vw,100px); color:#fff; letter-spacing:12px;
+    text-shadow:0 0 50px rgba(255,40,40,.9),0 0 100px rgba(255,40,40,.4);
+    animation:tp 3s ease-in-out infinite; margin-bottom:8px;
+  }
+  @keyframes tp {
+    0%,100%{text-shadow:0 0 50px rgba(255,40,40,.9),0 0 100px rgba(255,40,40,.4);}
+    50%{text-shadow:0 0 70px rgba(255,40,40,1),0 0 140px rgba(255,40,40,.6),0 0 220px rgba(255,0,0,.2);}
+  }
+  .sub { color:rgba(127,255,176,.55); font-size:12px; letter-spacing:6px; margin-bottom:44px; }
+  .lore {
+    color:rgba(200,200,200,.45); font-size:11px; letter-spacing:1px;
+    max-width:380px; text-align:center; line-height:2.1; margin-bottom:44px;
+    border-top:1px solid rgba(255,255,255,.08); border-bottom:1px solid rgba(255,255,255,.08); padding:18px 0;
+  }
+  .btn {
+    background:transparent; font-family:'Share Tech Mono',monospace;
+    font-size:12px; letter-spacing:5px; cursor:pointer; text-transform:uppercase;
+    transition:all .3s; pointer-events:all; padding:13px 38px;
+  }
+  .btn-red  { border:1px solid rgba(255,60,60,.6); color:rgba(255,60,60,.9); }
+  .btn-red:hover  { background:rgba(255,60,60,.1); border-color:rgba(255,60,60,1); color:#fff; box-shadow:0 0 18px rgba(255,60,60,.4); }
+  .btn-grey { border:1px solid rgba(200,200,200,.3); color:rgba(200,200,200,.6); }
+  .btn-grey:hover { background:rgba(200,200,200,.05); color:#fff; border-color:rgba(200,200,200,.6); }
+
+  #death-screen { animation:df 1.6s ease-in forwards; }
+  @keyframes df { 0%{background:rgba(120,0,0,.85);}100%{background:rgba(0,0,0,.97);} }
+  #death-screen h1 { font-family:'Creepster',cursive; font-size:clamp(32px,6vw,72px); color:#ff3c3c; letter-spacing:8px; text-shadow:0 0 28px rgba(255,60,60,.8); margin-bottom:16px; }
+  #death-msg { color:rgba(200,200,200,.5); font-size:11px; letter-spacing:3px; margin-bottom:38px; }
+
+  #win-screen h1 { font-family:'Creepster',cursive; font-size:clamp(28px,5vw,62px); color:#7fffb0; letter-spacing:6px; text-shadow:0 0 28px rgba(127,255,176,.8); margin-bottom:16px; }
+  #win-msg { color:rgba(200,200,200,.45); font-size:11px; letter-spacing:3px; margin-bottom:38px; text-align:center; line-height:2.1; max-width:400px; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<canvas id="static-c"></canvas>
+
+<div id="ui">
+  <div id="crosshair"></div>
+  <div id="oxy-wrap">
+    <div id="oxy-label">O₂ RESERVE</div>
+    <div id="oxy-bg"><div id="oxy-fill"></div></div>
+  </div>
+  <div id="log-hud">LOGS: <span id="log-count">0</span> / 5</div>
+  <div id="threat-hud">⚠ PROXIMITY ALERT ⚠</div>
+  <div id="room-label"></div>
+  <div id="flash-mode-hud">▣ CONE BEAM</div>
+  <div id="controls-hud">WASD — MOVE<br>MOUSE — LOOK<br>CLICK — LOCK CURSOR<br>F — WIDE / CONE BEAM</div>
+</div>
+
+<div id="scan"></div>
+<div id="vignette"></div>
+<div id="blood-flash"></div>
+
+<div id="title-screen" class="screen">
+  <h1>GEMINI-7</h1>
+  <div class="sub">Deep Space Station — Sector 9</div>
+  <div class="lore">
+    Communication with Station Gemini-7 went dark<br>
+    17 days ago. You are the rescue team.<br><br>
+    Recover the 5 black box logs.<br>
+    Do not let it find you.
+  </div>
+  <button class="btn btn-red" id="start-btn">BEGIN RESCUE MISSION</button>
+</div>
+
+<div id="death-screen" class="screen hidden">
+  <h1 id="death-title">CONSUMED</h1>
+  <div id="death-msg">It found you in the dark.</div>
+  <button class="btn btn-grey" onclick="resetGame()">TRY AGAIN</button>
+</div>
+
+<div id="win-screen" class="screen hidden">
+  <h1>SIGNAL SENT</h1>
+  <div id="win-msg">You recovered the logs.<br>You know what happened here now.<br><br>You wish you didn't.</div>
+  <button class="btn btn-grey" onclick="resetGame()">START OVER</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════
+//  GEMINI-7  ·  3D First-Person Horror  ·  Three.js r128
+// ═══════════════════════════════════════════════════════════
+
+// ── Canvas / Static overlay ──────────────────────────────
+const sc = document.getElementById('static-c');
+sc.width = window.innerWidth; sc.height = window.innerHeight;
+sc.style.width = window.innerWidth+'px'; sc.style.height = window.innerHeight+'px';
+const sCtx = sc.getContext('2d');
+
+// ── Renderer ─────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias:true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+scene.fog = new THREE.FogExp2(0x000000, 0.08);
+
+const camera = new THREE.PerspectiveCamera(72, window.innerWidth/window.innerHeight, 0.05, 120);
+camera.position.set(0, 1.65, 0);
+scene.add(camera);
+
+// ── Lights ───────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x020306, 1));
+
+const flashlight = new THREE.SpotLight(0xc8deff, 9, 22, Math.PI/6.5, 0.3, 1.6);
+flashlight.castShadow = false;
+const flashTarget = new THREE.Object3D();
+flashTarget.position.set(0, 0, -1);
+camera.add(flashlight);
+camera.add(flashTarget);
+flashlight.target = flashTarget;
+flashlight.position.set(0.18, -0.08, 0);
+
+const playerFill = new THREE.PointLight(0x08101a, 0.55, 3.5, 2);
+camera.add(playerFill);
+
+// Monster's blood-red close-proximity glow (starts at 0)
+const monLight = new THREE.PointLight(0xff1010, 0, 1, 2);
+scene.add(monLight);
+
+// ── Materials ─────────────────────────────────────────────
+const MAT = {
+  floor: new THREE.MeshStandardMaterial({ color:0x0d0d15, roughness:0.95, metalness:0.1 }),
+  wall:  new THREE.MeshStandardMaterial({ color:0x101820, roughness:0.88, metalness:0.18 }),
+  ceil:  new THREE.MeshStandardMaterial({ color:0x07070f, roughness:1.0 }),
+  pipe:  new THREE.MeshStandardMaterial({ color:0x1a2232, roughness:0.65, metalness:0.65 }),
+  edge:  new THREE.MeshStandardMaterial({ color:0x1a2535, roughness:0.8, metalness:0.3 }),
+  log:   new THREE.MeshStandardMaterial({ color:0x00ff88, emissive:0x00ff88, emissiveIntensity:0.7, roughness:0.3, metalness:0.9 }),
+  logGlow: new THREE.MeshStandardMaterial({ color:0x00ff88, emissive:0x00ff88, emissiveIntensity:1.8, transparent:true, opacity:0.1, side:THREE.BackSide }),
+};
+
+// ── Map ───────────────────────────────────────────────────
+const WALL_H = 3.2;
+
+const ROOMS = [
+  { name:'AIRLOCK',     cx:  0, cz:  0, w:10, d: 8 },
+  { name:'COMMAND',     cx: 18, cz: -4, w:14, d:10 },
+  { name:'STORAGE',     cx: 36, cz:  2, w:10, d:10 },
+  { name:'MED-BAY',     cx: -4, cz: 18, w: 8, d:10 },
+  { name:'REACTOR',     cx: 14, cz: 18, w:16, d:14 },
+  { name:'LABS',        cx: 34, cz: 18, w:12, d:14 },
+  { name:'QUARTERS',    cx:  4, cz: 34, w:12, d: 8 },
+  { name:'CARGO',       cx: 20, cz: 36, w:14, d:10 },
+  { name:'VENT ACCESS', cx: 38, cz: 36, w:10, d:10 },
+];
+
+const CORRIDORS = [
+  { cx: 10,  cz: -1,  w:4, d:4 },
+  { cx: 29,  cz:  0,  w:4, d:4 },
+  { cx:  0,  cz: 10,  w:4, d:4 },
+  { cx:  6,  cz: 18,  w:4, d:4 },
+  { cx: 24,  cz: 18,  w:4, d:4 },
+  { cx: 14,  cz: 28,  w:4, d:4 },
+  { cx:  4,  cz: 28,  w:4, d:4 },
+  { cx: 36,  cz: 28,  w:4, d:4 },
+  { cx: 18,  cz:  8,  w:4, d:4 },
+  { cx: 36,  cz: 10,  w:4, d:4 },
+  { cx: 28,  cz: 36,  w:4, d:4 },
+];
+
+const ALL_CELLS = [...ROOMS, ...CORRIDORS];
+
+function isWalkable(x, z) {
+  for (const r of ALL_CELLS) {
+    if (Math.abs(x - r.cx) < r.w/2 - 0.2 && Math.abs(z - r.cz) < r.d/2 - 0.2) return true;
+  }
+  return false;
+}
+
+function getRoomName(x, z) {
+  for (const r of ROOMS) {
+    if (Math.abs(x - r.cx) < r.w/2 && Math.abs(z - r.cz) < r.d/2) return r.name;
+  }
+  return null;
+}
+
+// ── Build geometry ─────────────────────────────────────────
+function addPlane(geo, mat, px, py, pz, rx, ry) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(px, py, pz);
+  m.rotation.set(rx||0, ry||0, 0);
+  m.receiveShadow = true;
+  scene.add(m);
+  return m;
+}
+
+ALL_CELLS.forEach(r => {
+  const hw = r.w/2, hd = r.d/2;
+  const cx = r.cx, cz = r.cz;
+
+  // Floor & ceiling
+  addPlane(new THREE.PlaneGeometry(r.w, r.d), MAT.floor, cx, 0,       cz, -Math.PI/2, 0);
+  addPlane(new THREE.PlaneGeometry(r.w, r.d), MAT.ceil,  cx, WALL_H,  cz,  Math.PI/2, 0);
+
+  // 4 walls
+  const wallDefs = [
+    [cx,      WALL_H/2, cz-hd, 0, 0,        r.w],
+    [cx,      WALL_H/2, cz+hd, 0, Math.PI,  r.w],
+    [cx-hw,   WALL_H/2, cz,    0, Math.PI/2,r.d],
+    [cx+hw,   WALL_H/2, cz,    0,-Math.PI/2,r.d],
+  ];
+  wallDefs.forEach(([wx,wy,wz,rx2,ry2,ww]) => {
+    addPlane(new THREE.PlaneGeometry(ww, WALL_H), MAT.wall, wx, wy, wz, rx2, ry2);
+  });
+
+  // Floor edge strips
+  const eg = new THREE.BoxGeometry(r.w, 0.04, 0.1);
+  [-hd+0.05, hd-0.05].forEach(oz => {
+    const e = new THREE.Mesh(eg, MAT.edge); e.position.set(cx, 0.02, cz+oz); scene.add(e);
+  });
+
+  // Pipes on ceiling (rooms only)
+  if (r.w > 5) {
+    const pg = new THREE.CylinderGeometry(0.055, 0.055, r.w*0.65, 6);
+    const p = new THREE.Mesh(pg, MAT.pipe);
+    p.rotation.z = Math.PI/2; p.position.set(cx, WALL_H-0.16, cz+hd*0.28); scene.add(p);
+
+    // Vent grate detail on one wall
+    const vg = new THREE.BoxGeometry(0.6, 0.4, 0.05);
+    const vm = new THREE.MeshStandardMaterial({ color:0x0a1520, roughness:0.7, metalness:0.8 });
+    const v = new THREE.Mesh(vg, vm); v.position.set(cx-hw+0.03, WALL_H*0.6, cz); v.rotation.y=Math.PI/2; scene.add(v);
+  }
+});
+
+// ── Logs ──────────────────────────────────────────────────
+const LOG_POS = [
+  { x:18, z:-4  },
+  { x:36, z: 2  },
+  { x:-4, z:18  },
+  { x:20, z:36  },
+  { x:38, z:36  },
+];
+
+const logObjs = LOG_POS.map((p, i) => {
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.28,0.1,0.18), MAT.log));
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.46,0.2,0.32), MAT.logGlow));
+  const lt = new THREE.PointLight(0x00ff88, 1.3, 3, 2); g.add(lt);
+  g.position.set(p.x, 0.5, p.z);
+  g.userData = { id:i, collected:false, baseY:0.5, lt };
+  scene.add(g); return g;
+});
+
+// ── Monster — billboard sprite ────────────────────────────
+// To use your own image: replace MONSTER_IMAGE_URL with any
+// image URL or a base64 data URI (data:image/png;base64,...)
+// A PNG with transparent background works best.
+const MONSTER_IMAGE_URL = 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" width="128" height="192" viewBox="0 0 128 192"><ellipse cx="64" cy="48" rx="30" ry="36" fill="#1a0000"/><circle cx="50" cy="42" r="7" fill="#cc0000"/><circle cx="78" cy="42" r="7" fill="#cc0000"/><circle cx="50" cy="42" r="3" fill="#ff2200"/><circle cx="78" cy="42" r="3" fill="#ff2200"/><ellipse cx="64" cy="100" rx="22" ry="50" fill="#110000"/><line x1="42" y1="80" x2="10" y2="110" stroke="#1a0000" stroke-width="6"/><line x1="42" y1="95" x2="5" y2="115" stroke="#1a0000" stroke-width="5"/><line x1="86" y1="80" x2="118" y2="110" stroke="#1a0000" stroke-width="6"/><line x1="86" y1="95" x2="123" y2="115" stroke="#1a0000" stroke-width="5"/><ellipse cx="64" cy="155" rx="18" ry="22" fill="#0d0000"/></svg>`);
+
+const monsterTex = new THREE.TextureLoader().load(MONSTER_IMAGE_URL);
+const monMat = new THREE.SpriteMaterial({
+  map: monsterTex, transparent: true, depthWrite: false, opacity: 0.0
+});
+const monMesh = new THREE.Sprite(monMat);
+monMesh.scale.set(1.4, 2.1, 1);
+monMesh.position.set(38, 1.05, 2);
+scene.add(monMesh);
+
+// ── State ─────────────────────────────────────────────────
+let gameActive    = false;
+let frameCount    = 0;
+let yaw = 0, pitch = 0;
+let keys = {};
+let playerOxy     = 100;
+let logsCollected = 0;
+let dangerLevel   = 0;
+let flickerTimer  = 0, flickerIntensity = 0;
+let staticOp      = 0;
+let roomLabel     = '', roomLabelTimer = 0;
+let heartbeatTime = 0;
+let flashMode     = 'cone';
+
+// Camera bob
+let bobTime       = 0;   // accumulates while moving
+let bobVelocity   = 0;   // for smooth decay when stopping
+const BOB_SPEED   = 9.5; // cycles per second of walking
+const BOB_AMOUNT  = 0.055; // vertical amplitude
+const BOB_SWAY    = 0.028; // horizontal sway amplitude
+
+const playerPos = new THREE.Vector3(0, 1.65, 0);
+const monPos    = new THREE.Vector3(38, 0, 2);
+let monState = 'patrol', monAlertTimer = 0;
+const monPatrol = new THREE.Vector3(38, 0, 2);
+
+const clock = new THREE.Clock();
+
+// ── Audio ─────────────────────────────────────────────────
+let actx = null;
+function initAudio() { try { actx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
+function tone(freq, type, dur, vol, delay=0) {
+  if (!actx) return;
+  setTimeout(()=>{
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.connect(g); g.connect(actx.destination);
+    o.type=type; o.frequency.setValueAtTime(freq,actx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(freq*0.5, actx.currentTime+dur);
+    g.gain.setValueAtTime(vol,actx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+dur);
+    o.start(); o.stop(actx.currentTime+dur);
+  }, delay);
+}
+const heartbeat = () => { tone(58,'sine',0.08,0.45); tone(52,'sine',0.13,0.3,130); };
+const pickup    = () => { tone(440,'sine',0.1,0.28); tone(660,'sine',0.18,0.2,110); tone(880,'sine',0.28,0.14,210); };
+const death     = () => { tone(200,'sawtooth',0.5,0.5); tone(140,'sawtooth',0.9,0.45,100); tone(70,'sine',1.8,0.6,200); };
+const scuttle   = () => tone(65+Math.random()*55,'square',0.06,0.14);
+const flashBeep = () => tone(flashMode==='wide'?300:175,'sine',0.14,0.18);
+
+// ── Pointer lock ──────────────────────────────────────────
+const cvs = document.getElementById('c');
+cvs.addEventListener('click', () => { if (gameActive) cvs.requestPointerLock(); });
+document.addEventListener('mousemove', e => {
+  if (!gameActive || document.pointerLockElement !== cvs) return;
+  yaw   -= e.movementX * 0.0017;
+  pitch -= e.movementY * 0.0017;
+  pitch = Math.max(-1.1, Math.min(0.9, pitch));
+});
+
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'KeyF' && gameActive) {
+    flashMode = flashMode === 'cone' ? 'wide' : 'cone';
+    applyFlashMode();
+    flashBeep();
+  }
+});
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+function applyFlashMode() {
+  if (flashMode === 'cone') {
+    flashlight.angle = Math.PI/6.5; flashlight.penumbra = 0.3;
+    flashlight.intensity = 9; flashlight.distance = 22;
+    document.getElementById('flash-mode-hud').textContent = '▣ CONE BEAM';
+    document.getElementById('flash-mode-hud').style.color = 'rgba(122,200,255,0.45)';
+  } else {
+    flashlight.angle = Math.PI/3.2; flashlight.penumbra = 0.55;
+    flashlight.intensity = 5.5; flashlight.distance = 16;
+    document.getElementById('flash-mode-hud').textContent = '◉ WIDE BEAM';
+    document.getElementById('flash-mode-hud').style.color = 'rgba(255,200,80,0.5)';
+  }
+}
+
+// ── Monster AI ────────────────────────────────────────────
+function updateMonster(dt) {
+  const dx = playerPos.x - monPos.x;
+  const dz = playerPos.z - monPos.z;
+  const dist = Math.sqrt(dx*dx + dz*dz);
+
+  if (dist < 15)         { monState = 'hunt'; monAlertTimer = 220; }
+  else if (monAlertTimer > 0) { monAlertTimer--; monState = 'hunt'; }
+  else                   { monState = 'patrol'; }
+
+  const baseSpd = 3.8 * dt; // units/sec
+  if (monState === 'hunt') {
+    const spd = baseSpd * (1 + Math.max(0, (1 - dist/15)) * 1.3);
+    const nx = monPos.x + (dx/dist)*spd;
+    const nz = monPos.z + (dz/dist)*spd;
+    if      (isWalkable(nx, nz))         { monPos.x=nx; monPos.z=nz; }
+    else if (isWalkable(nx, monPos.z))   { monPos.x=nx; }
+    else if (isWalkable(monPos.x, nz))   { monPos.z=nz; }
+    if (frameCount%42===0 && dist<10) scuttle();
+  } else {
+    const pdx = monPatrol.x - monPos.x;
+    const pdz = monPatrol.z - monPos.z;
+    const pd  = Math.sqrt(pdx*pdx + pdz*pdz);
+    if (pd < 0.8 || !isWalkable(monPatrol.x, monPatrol.z)) {
+      const r = ROOMS[Math.floor(Math.random()*ROOMS.length)];
+      monPatrol.set(r.cx+(Math.random()-.5)*r.w*.55, 0, r.cz+(Math.random()-.5)*r.d*.55);
+    } else {
+      const spd = baseSpd * 0.4;
+      const nx = monPos.x+(pdx/pd)*spd, nz = monPos.z+(pdz/pd)*spd;
+      if (isWalkable(nx, nz)) { monPos.x=nx; monPos.z=nz; }
+    }
+  }
+
+  monMesh.position.set(monPos.x, 1.05, monPos.z);
+  dangerLevel = Math.max(0, Math.min(1, 1 - dist/15));
+
+  // Sprite fades in only when dangerously close (< 4 units)
+  const nearGlow = Math.max(0, 1 - dist/3.2);
+  const spriteVisibility = Math.max(0, 1 - dist/4.5);
+  monMat.opacity = spriteVisibility * 0.92;
+  monLight.position.set(monPos.x, 1.6, monPos.z);
+  monLight.intensity = nearGlow * 5;
+  monLight.distance  = Math.max(1, nearGlow * 5);
+
+  if (dist < 1.05) killPlayer('monster');
+}
+
+// ── Update ────────────────────────────────────────────────
+function update() {
+  const dt = clock.getDelta();
+  frameCount++;
+  if (!gameActive) return;
+
+  // Camera
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+
+  // Move
+  const spd = 5.2 * dt;
+  const fwd   = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+  const right = new THREE.Vector3(Math.cos(yaw),  0, -Math.sin(yaw));
+  const move  = new THREE.Vector3();
+  if (keys['KeyW']||keys['ArrowUp'])    move.addScaledVector(fwd, spd);
+  if (keys['KeyS']||keys['ArrowDown'])  move.addScaledVector(fwd,-spd);
+  if (keys['KeyA']||keys['ArrowLeft'])  move.addScaledVector(right,-spd);
+  if (keys['KeyD']||keys['ArrowRight']) move.addScaledVector(right, spd);
+
+  if (isWalkable(playerPos.x+move.x, playerPos.z))       playerPos.x+=move.x;
+  if (isWalkable(playerPos.x,        playerPos.z+move.z)) playerPos.z+=move.z;
+
+  // ── Camera bob ──────────────────────────────────────────
+  const isMoving = move.lengthSq() > 0.000001;
+  if (isMoving) {
+    bobTime += dt * BOB_SPEED;
+    bobVelocity = Math.min(1, bobVelocity + dt * 8); // ramp up
+  } else {
+    bobVelocity = Math.max(0, bobVelocity - dt * 6); // decay
+    // smoothly return bobTime toward nearest full cycle to avoid a pop
+    bobTime += dt * BOB_SPEED * bobVelocity;
+  }
+  const bobY    = Math.sin(bobTime) * BOB_AMOUNT * bobVelocity;
+  const bobX    = Math.sin(bobTime * 0.5) * BOB_SWAY * bobVelocity;
+  const bobRoll = Math.sin(bobTime * 0.5) * 0.018 * bobVelocity; // subtle roll
+
+  camera.position.set(
+    playerPos.x + bobX,
+    playerPos.y + bobY,
+    playerPos.z
+  );
+  camera.rotation.z = bobRoll;
+
+  // Crosshair tilt mirrors the roll
+  const ch = document.getElementById('crosshair');
+  ch.style.transform = `translate(-50%,-50%) rotate(${bobRoll * 28}deg)`;
+  ch.style.opacity = 0.45 + Math.abs(bobY) * 1.5;
+
+  // Room label
+  const rn = getRoomName(playerPos.x, playerPos.z);
+  if (rn && rn!==roomLabel) { roomLabel=rn; roomLabelTimer=170; }
+  if (roomLabelTimer>0) roomLabelTimer--;
+  const rlEl = document.getElementById('room-label');
+  if (roomLabelTimer>0) {
+    const a = Math.min(1,roomLabelTimer/30)*Math.min(1,(170-roomLabelTimer)/30+0.3);
+    rlEl.style.color=`rgba(127,255,176,${a*0.5})`;
+    rlEl.textContent=`[ ${roomLabel} ]`;
+  } else rlEl.style.color='rgba(127,255,176,0)';
+
+  // Oxygen
+  playerOxy -= (0.006 + dangerLevel*0.016) * 60 * dt;
+  playerOxy = Math.max(0, playerOxy);
+  const fill = document.getElementById('oxy-fill');
+  const oc = playerOxy>50?'#7fffb0':playerOxy>25?'#ffcc44':'#ff4444';
+  fill.style.width=playerOxy+'%'; fill.style.background=oc;
+  fill.style.boxShadow=`0 0 ${playerOxy>50?6:10}px ${oc}`;
+  if (playerOxy<=0) { killPlayer('oxy'); return; }
+
+  // Log collection
+  logObjs.forEach(lg => {
+    if (lg.userData.collected) return;
+    const ldx=playerPos.x-lg.position.x, ldz=playerPos.z-lg.position.z;
+    if (Math.sqrt(ldx*ldx+ldz*ldz)<1.15) {
+      lg.userData.collected=true; lg.visible=false;
+      pickup(); logsCollected++;
+      document.getElementById('log-count').textContent=logsCollected;
+      if (logsCollected>=5) winGame();
+    }
+    const t = frameCount*0.028 + lg.userData.id;
+    lg.position.y = lg.userData.baseY + Math.sin(t)*0.09;
+    lg.rotation.y = t*0.45;
+    lg.userData.lt.intensity = 1.1+Math.sin(t*1.8)*0.45;
+  });
+
+  // Monster
+  updateMonster(dt);
+
+  // Flashlight flicker
+  flickerTimer--;
+  if (flickerTimer<=0) {
+    flickerTimer = Math.floor(12+Math.random()*(80-dangerLevel*60));
+    flickerIntensity = Math.random()*(0.2+dangerLevel*0.65);
+  }
+  const fBase = flashMode==='cone'?9:5.5;
+  flashlight.intensity = fBase*(1-flickerIntensity*0.5)*(0.94+Math.sin(frameCount*0.07)*0.06);
+
+  // Fog
+  scene.fog.density = 0.065 + dangerLevel*0.065;
+
+  // Blood flash
+  document.getElementById('blood-flash').style.background =
+    dangerLevel>0.12 ? `rgba(150,0,0,${dangerLevel*0.3})` : 'rgba(0,0,0,0)';
+
+  // Threat HUD
+  const th=document.getElementById('threat-hud');
+  if (dangerLevel>0.3) {
+    th.style.color=`rgba(255,60,60,${dangerLevel})`;
+    th.style.textShadow=`0 0 ${10*dangerLevel}px rgba(255,60,60,0.9)`;
+  } else th.style.color='rgba(255,60,60,0)';
+
+  // Heartbeat
+  if (dangerLevel>0.22) {
+    heartbeatTime++;
+    const interval = Math.max(8, Math.floor(55-dangerLevel*42));
+    if (heartbeatTime%interval===0) heartbeat();
+  }
+
+  // Static
+  staticOp = dangerLevel*0.25 + (flickerIntensity>0.5?0.1:0);
+  sc.style.opacity = staticOp;
+  if (staticOp>0.04) {
+    sCtx.clearRect(0,0,sc.width,sc.height);
+    const id=sCtx.createImageData(sc.width,sc.height), d=id.data;
+    for (let i=0;i<d.length;i+=4) {
+      if (Math.random()<staticOp*0.3) { const v=Math.random()*200; d[i]=v;d[i+1]=v;d[i+2]=v;d[i+3]=Math.random()*130; }
+    }
+    sCtx.putImageData(id,0,0);
+  }
+
+  // Camera shake
+  if (dangerLevel>0.55) {
+    camera.position.x+=(Math.random()-.5)*dangerLevel*0.022;
+    camera.position.z+=(Math.random()-.5)*dangerLevel*0.022;
+  }
+}
+
+// ── Game flow ─────────────────────────────────────────────
+function killPlayer(reason) {
+  if (!gameActive) return;
+  gameActive=false; death();
+  document.exitPointerLock?.();
+  document.getElementById('death-title').textContent=reason==='oxy'?'SUFFOCATED':'CONSUMED';
+  document.getElementById('death-msg').textContent=reason==='oxy'?'The station claimed your last breath.':'It found you in the dark.';
+  document.getElementById('death-screen').classList.remove('hidden');
+}
+
+function winGame() {
+  if (!gameActive) return;
+  gameActive=false; document.exitPointerLock?.();
+  setTimeout(()=>document.getElementById('win-screen').classList.remove('hidden'),700);
+}
+
+document.getElementById('start-btn').addEventListener('click', ()=>{
+  initAudio();
+  document.getElementById('title-screen').classList.add('hidden');
+  gameActive=true; clock.getDelta(); // reset clock
+  cvs.requestPointerLock();
+});
+
+function resetGame() {
+  playerPos.set(0,1.65,0); camera.position.copy(playerPos);
+  yaw=0; pitch=0; keys={};
+  monPos.set(38,0,2); monState='patrol'; monAlertTimer=0; monPatrol.set(38,0,2);
+  playerOxy=100; logsCollected=0; dangerLevel=0;
+  flickerTimer=0; flickerIntensity=0; staticOp=0;
+  frameCount=0; heartbeatTime=0;
+  flashMode='cone'; applyFlashMode();
+  bobTime=0; bobVelocity=0;
+  document.getElementById('crosshair').style.transform='translate(-50%,-50%) rotate(0deg)';
+  roomLabel=''; roomLabelTimer=0;
+  logObjs.forEach(lg=>{ lg.userData.collected=false; lg.visible=true; lg.position.y=lg.userData.baseY; });
+  document.getElementById('log-count').textContent='0';
+  document.getElementById('death-screen').classList.add('hidden');
+  document.getElementById('win-screen').classList.add('hidden');
+  document.getElementById('title-screen').classList.add('hidden');
+  document.getElementById('blood-flash').style.background='rgba(0,0,0,0)';
+  sc.style.opacity=0; scene.fog.density=0.065;
+  monLight.intensity=0; monMesh.position.set(38,1.05,2); monMat.opacity=0;
+  gameActive=true; clock.getDelta();
+  cvs.requestPointerLock();
+}
+
+// ── Render loop ───────────────────────────────────────────
+(function loop() {
+  requestAnimationFrame(loop);
+  update();
+  renderer.render(scene, camera);
+})();
+
+window.addEventListener('resize', ()=>{
+  const w=window.innerWidth, h=window.innerHeight;
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+  sc.width=w; sc.height=h; sc.style.width=w+'px'; sc.style.height=h+'px';
+});
+</script>
+</body>
+</html>
