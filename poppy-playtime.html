@@ -1105,19 +1105,32 @@ Tone: Like Poppy Playtime — superficially cute, deeply wrong. Old toy commerci
     const raw = data.content?.map(c => c.text || '').join('') || '';
     GS.history.push({ role: 'assistant', content: raw });
 
-    removeTyping(room);
-
-    // Parse choices
+    // Parse choices FIRST before any state changes
     let choices = [];
     const cm = raw.match(/CHOICES:\s*(\[[\s\S]*?\])/);
     if (cm) { try { choices = JSON.parse(cm[1]); } catch (e) {} }
 
-    // Parse state
+    // Parse state — handle advance_room separately
     const sm = raw.match(/STATE:\s*(\{[\s\S]*?\})/);
-    if (sm) { try { applyState(JSON.parse(sm[1])); } catch (e) {} }
+    let shouldAdvance = false;
+    if (sm) {
+      try {
+        const u = JSON.parse(sm[1]);
+        shouldAdvance = !!u.advance_room;
+        applyStateNoAdvance(u);
+      } catch (e) {}
+    }
 
     const txt = raw.replace(/CHOICES:\s*\[[\s\S]*?\]/g, '').replace(/STATE:\s*\{[\s\S]*?\}/g, '').trim();
-    renderNarr(room, txt, choices);
+
+    // Render into the room that was active when the call started
+    removeTyping(room);
+    renderNarr(room, txt, shouldAdvance ? [] : choices);
+
+    // Advance room AFTER rendering, with a delay so player sees the text
+    if (shouldAdvance) {
+      setTimeout(() => advanceRoom(), 1400);
+    }
 
   } catch (e) {
     removeTyping(room);
@@ -1132,7 +1145,7 @@ Tone: Like Poppy Playtime — superficially cute, deeply wrong. Old toy commerci
   setInput(true);
 }
 
-function applyState(u) {
+function applyStateNoAdvance(u) {
   if (u.fear_delta) { GS.fear = Math.min(100, Math.max(0, GS.fear + u.fear_delta)); updateFear(); }
   if (u.found_blue_grab) { GS.hasBlueGrab = true; document.getElementById('gp-blue').classList.add('active'); document.getElementById('gp-display-blue').style.boxShadow = '0 0 15px rgba(26,106,191,0.7)'; addAlert('BLUE GRABPACK — ACQUIRED'); }
   if (u.power_restored) { GS.powerOn = true; addAlert('POWER RESTORED'); }
@@ -1145,9 +1158,9 @@ function applyState(u) {
       setTimeout(() => { document.getElementById('huggy-eye').style.opacity = '0'; }, 4000);
     }
   }
-  if (u.advance_room) { advanceRoom(); }
-  if (u.gameover) { triggerGameover(); }
-  if (u.win) { triggerWin(); }
+  // advance_room handled by caller to avoid async race
+  if (u.gameover) { setTimeout(() => triggerGameover(), 800); }
+  if (u.win) { setTimeout(() => triggerWin(), 800); }
 }
 
 // ════════════════════════════════
@@ -1155,7 +1168,9 @@ function applyState(u) {
 // ════════════════════════════════
 function advanceRoom() {
   const oldRoom = ROOMS[roomIndex];
-  roomIndex = Math.min(roomIndex + 1, ROOMS.length - 1);
+  const nextIndex = Math.min(roomIndex + 1, ROOMS.length - 1);
+  if (nextIndex === roomIndex) return;
+  roomIndex = nextIndex;
   const newRoom = ROOMS[roomIndex];
 
   document.getElementById('room-' + oldRoom).classList.remove('active');
@@ -1170,6 +1185,8 @@ function advanceRoom() {
   if (newRoom === 'chase') startChaseEffects();
   if (newRoom === 'puzzle') document.getElementById('puzzle-info').style.display = 'block';
 
+  // Reset thinking lock then call AI for the new room
+  GS.thinking = false;
   setTimeout(() => callAI(null, false), 300);
 }
 
@@ -1291,11 +1308,12 @@ function showTypingInRoom(room) {
 }
 
 function removeTyping(room) {
-  const textEl = document.getElementById('narr-' + room + '-text');
-  if (textEl) {
-    const tw = textEl.querySelector('.typing-wrap');
-    if (tw) tw.remove();
-  }
+  // Clean typing indicator from both the target room and current room (safe after advances)
+  const rooms = [...new Set([room, ROOMS[roomIndex]])];
+  rooms.forEach(r => {
+    const textEl = document.getElementById('narr-' + r + '-text');
+    if (textEl) { const tw = textEl.querySelector('.typing-wrap'); if (tw) tw.remove(); }
+  });
 }
 
 function renderNarr(room, text, choices) {
@@ -1355,8 +1373,5 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !GS.thinking) sendAction();
 });
 </script>
-<meta name="game-title" content="POPPY PLAYTIME — CHAPTER 1">
-<meta name="game-file" content="poppy-playtime.html">
-<script src="game-utils.js"></script>
 </body>
 </html>
