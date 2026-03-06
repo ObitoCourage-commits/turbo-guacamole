@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAR CRY: OUTPOST</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --jungle: #1a2e1a;
+    --leaf: #2d5a27;
+    --sun: #e8a020;
+    --fire: #ff4500;
+    --blood: #8b0000;
+    --hud: rgba(0,0,0,0.75);
+    --text: #d4c5a0;
+    --alert: #ff2200;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0f0a;
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    user-select: none;
+    cursor: crosshair;
+  }
+
+  #game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* === WORLD === */
+  #world {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, #1a3a5c 0%, #2d6b4a 40%, #1a2e1a 100%);
+  }
+
+  .sky {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 38%;
+    background: linear-gradient(180deg, #0d1f3c 0%, #1e4a6e 50%, #3a7a50 100%);
+  }
+
+  .sun-orb {
+    position: absolute;
+    top: 8%;
+    right: 15%;
+    width: 60px; height: 60px;
+    background: radial-gradient(circle, #ffe066 0%, #e8a020 60%, transparent 100%);
+    border-radius: 50%;
+    box-shadow: 0 0 40px 15px rgba(232,160,32,0.4);
+    animation: sunPulse 4s ease-in-out infinite;
+  }
+
+  @keyframes sunPulse {
+    0%,100% { box-shadow: 0 0 40px 15px rgba(232,160,32,0.4); }
+    50% { box-shadow: 0 0 60px 25px rgba(232,160,32,0.6); }
+  }
+
+  /* Mountains */
+  .mountains {
+    position: absolute;
+    bottom: 38%;
+    width: 100%;
+    height: 200px;
+  }
+
+  .mountain {
+    position: absolute;
+    bottom: 0;
+    border-left: solid transparent;
+    border-right: solid transparent;
+    border-bottom: solid #1a3d2a;
+  }
+
+  /* Jungle Ground */
+  .ground {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 45%;
+    background: linear-gradient(180deg, #1a3d1a 0%, #0f2010 100%);
+    border-top: 3px solid #2d5a27;
+  }
+
+  /* Trees */
+  .tree {
+    position: absolute;
+    bottom: 40%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: default;
+  }
+  .tree-top {
+    width: 0; height: 0;
+    border-left: solid transparent;
+    border-right: solid transparent;
+    border-bottom: solid;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+  }
+  .tree-trunk {
+    background: #3d2010;
+    border-radius: 2px;
+  }
+
+  /* === PLAYER === */
+  #player {
+    position: absolute;
+    bottom: 40%;
+    transition: left 0.1s linear;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 10;
+  }
+
+  .player-body {
+    position: relative;
+    width: 24px;
+    height: 36px;
+  }
+
+  .p-head {
+    width: 14px; height: 14px;
+    background: #c8a070;
+    border-radius: 50% 50% 40% 40%;
+    margin: 0 auto 1px;
+    border: 2px solid #8b6040;
+    position: relative;
+  }
+  .p-head::after { /* hat */
+    content: '';
+    position: absolute;
+    top: -5px; left: -3px;
+    width: 20px; height: 8px;
+    background: #3a5c20;
+    border-radius: 3px 3px 0 0;
+    border-bottom: 2px solid #2a4010;
+  }
+  .p-torso {
+    width: 18px; height: 16px;
+    background: #3a5c20;
+    margin: 0 auto;
+    border-radius: 3px;
+    border: 1px solid #2a4010;
+    position: relative;
+  }
+  .p-torso::after { /* gun */
+    content: '';
+    position: absolute;
+    right: -14px; top: 5px;
+    width: 16px; height: 4px;
+    background: #555;
+    border-radius: 2px;
+    border: 1px solid #333;
+  }
+  .p-legs {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+  }
+  .p-leg {
+    width: 6px; height: 10px;
+    background: #2a4010;
+    border-radius: 0 0 3px 3px;
+    border: 1px solid #1a2a08;
+    transition: transform 0.1s;
+  }
+
+  #player.walking .p-leg:first-child { animation: walkL 0.3s infinite; }
+  #player.walking .p-leg:last-child { animation: walkR 0.3s infinite; }
+
+  @keyframes walkL { 0%,100%{transform:rotate(-15deg)} 50%{transform:rotate(15deg)} }
+  @keyframes walkR { 0%,100%{transform:rotate(15deg)} 50%{transform:rotate(-15deg)} }
+
+  #player.jumping { bottom: calc(40% + 80px) !important; transition: bottom 0.2s ease-out; }
+
+  /* === ENEMIES === */
+  .enemy {
+    position: absolute;
+    bottom: 40%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 9;
+    transition: left 0.05s linear;
+  }
+  .e-head {
+    width: 12px; height: 12px;
+    background: #c06040;
+    border-radius: 50%;
+    border: 2px solid #8b3020;
+    margin: 0 auto 1px;
+  }
+  .e-body {
+    width: 16px; height: 14px;
+    background: #5a1010;
+    border-radius: 3px;
+    border: 1px solid #3a0808;
+    position: relative;
+  }
+  .e-body::after {
+    content: '';
+    position: absolute;
+    left: -10px; top: 4px;
+    width: 12px; height: 3px;
+    background: #888;
+    border-radius: 1px;
+  }
+  .e-legs { display: flex; gap: 3px; }
+  .e-leg {
+    width: 5px; height: 9px;
+    background: #3a0808;
+    border-radius: 0 0 2px 2px;
+    animation: enemyWalk 0.4s infinite;
+  }
+  .e-leg:last-child { animation-delay: 0.2s; }
+  @keyframes enemyWalk { 0%,100%{transform:rotate(-10deg)} 50%{transform:rotate(10deg)} }
+
+  .enemy-health {
+    position: absolute;
+    top: -10px;
+    width: 30px; height: 4px;
+    background: #333;
+    border-radius: 2px;
+  }
+  .enemy-health-bar {
+    height: 100%;
+    background: #e00;
+    border-radius: 2px;
+    transition: width 0.1s;
+  }
+
+  /* === BULLETS === */
+  .bullet {
+    position: absolute;
+    width: 8px; height: 3px;
+    background: #ffcc00;
+    border-radius: 2px;
+    box-shadow: 0 0 6px 2px rgba(255,200,0,0.8);
+    z-index: 15;
+  }
+  .enemy-bullet {
+    background: #ff3300;
+    box-shadow: 0 0 6px 2px rgba(255,50,0,0.8);
+  }
+
+  /* === COLLECTIBLES === */
+  .collectible {
+    position: absolute;
+    bottom: calc(40% + 5px);
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    z-index: 8;
+    animation: bobble 1s ease-in-out infinite;
+  }
+  .ammo-pick { background: radial-gradient(circle, #ffe066, #e8a020); box-shadow: 0 0 8px #e8a020; }
+  .health-pick { background: radial-gradient(circle, #66ff88, #00aa44); box-shadow: 0 0 8px #00cc44; }
+
+  @keyframes bobble { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+
+  /* === EFFECTS === */
+  .muzzle-flash {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #ffe066 40%, transparent 100%);
+    pointer-events: none;
+    z-index: 20;
+    animation: flash 0.1s forwards;
+  }
+  @keyframes flash { 0%{opacity:1;transform:scale(1)} 100%{opacity:0;transform:scale(2)} }
+
+  .hit-effect {
+    position: absolute;
+    font-family: 'Black Ops One', cursive;
+    font-size: 14px;
+    color: #ff4400;
+    pointer-events: none;
+    z-index: 25;
+    animation: hitFloat 0.8s forwards;
+    text-shadow: 0 0 4px #ff0000;
+  }
+  @keyframes hitFloat { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-30px)} }
+
+  /* === EXPLOSION === */
+  .explosion {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, #ff8800 40%, #ff2200 70%, transparent 100%);
+    pointer-events: none;
+    z-index: 30;
+    animation: explode 0.5s forwards;
+    transform: translate(-50%, -50%);
+  }
+  @keyframes explode {
+    0%{width:10px;height:10px;opacity:1}
+    100%{width:60px;height:60px;opacity:0}
+  }
+
+  /* === HUD === */
+  #hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  #top-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 12px 20px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  #title-hud {
+    font-family: 'Black Ops One', cursive;
+    font-size: 22px;
+    color: var(--sun);
+    letter-spacing: 4px;
+    text-shadow: 0 0 10px rgba(232,160,32,0.6), 2px 2px 0 #000;
+  }
+
+  #score-display {
+    font-family: 'Black Ops One', cursive;
+    font-size: 18px;
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+
+  #wave-display {
+    font-family: 'Black Ops One', cursive;
+    font-size: 14px;
+    color: var(--fire);
+    letter-spacing: 3px;
+    animation: wavePulse 1s ease-in-out infinite;
+  }
+  @keyframes wavePulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+  #bottom-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 12px 20px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .stat-block { display: flex; flex-direction: column; gap: 4px; }
+  .stat-label {
+    font-size: 9px;
+    color: #888;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  #health-bar-container {
+    width: 180px; height: 12px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid #444;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+  }
+  #health-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #00cc44, #00ff55);
+    border-radius: 6px;
+    transition: width 0.3s, background 0.3s;
+    box-shadow: 0 0 6px rgba(0,255,85,0.5);
+  }
+
+  #ammo-display {
+    font-family: 'Black Ops One', cursive;
+    font-size: 24px;
+    color: var(--sun);
+    text-shadow: 0 0 8px rgba(232,160,32,0.5);
+  }
+  #ammo-display span { font-size: 13px; color: #888; }
+
+  #kills-display {
+    font-family: 'Black Ops One', cursive;
+    font-size: 20px;
+    color: var(--blood);
+    text-shadow: 0 0 8px rgba(139,0,0,0.6);
+  }
+
+  /* Crosshair */
+  #crosshair {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px; height: 24px;
+    pointer-events: none;
+    z-index: 60;
+  }
+  .ch-line {
+    position: absolute;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 4px rgba(255,255,255,0.5);
+  }
+  .ch-h { width: 8px; height: 1px; top: 50%; left: 0; transform: translateY(-50%); }
+  .ch-h2 { width: 8px; height: 1px; top: 50%; right: 0; transform: translateY(-50%); }
+  .ch-v { height: 8px; width: 1px; left: 50%; top: 0; transform: translateX(-50%); }
+  .ch-v2 { height: 8px; width: 1px; left: 50%; bottom: 0; transform: translateX(-50%); }
+  .ch-dot { width: 2px; height: 2px; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+  /* Controls hint */
+  #controls-hint {
+    position: absolute;
+    bottom: 80px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--hud);
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 1px;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+    transition: opacity 1s;
+  }
+
+  /* === SCREENS === */
+  #start-screen, #game-over-screen, #wave-screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    gap: 20px;
+  }
+
+  #game-over-screen, #wave-screen { display: none; }
+
+  .screen-title {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(32px, 6vw, 60px);
+    color: var(--sun);
+    letter-spacing: 8px;
+    text-align: center;
+    text-shadow: 0 0 20px rgba(232,160,32,0.6), 3px 3px 0 #000;
+    line-height: 1.1;
+  }
+
+  .screen-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(10px, 2vw, 14px);
+    color: #888;
+    letter-spacing: 3px;
+    text-align: center;
+  }
+
+  .btn {
+    font-family: 'Black Ops One', cursive;
+    font-size: 18px;
+    letter-spacing: 4px;
+    padding: 14px 40px;
+    background: transparent;
+    color: var(--sun);
+    border: 2px solid var(--sun);
+    cursor: pointer;
+    transition: all 0.2s;
+    pointer-events: all;
+    text-shadow: 0 0 8px rgba(232,160,32,0.4);
+    box-shadow: 0 0 15px rgba(232,160,32,0.2), inset 0 0 15px rgba(232,160,32,0.05);
+  }
+  .btn:hover {
+    background: var(--sun);
+    color: #000;
+    box-shadow: 0 0 25px rgba(232,160,32,0.6);
+    transform: scale(1.03);
+  }
+
+  .danger-text {
+    font-family: 'Black Ops One', cursive;
+    color: var(--alert);
+    font-size: clamp(14px, 2.5vw, 20px);
+    letter-spacing: 3px;
+    text-shadow: 0 0 10px rgba(255,34,0,0.6);
+  }
+
+  .score-final {
+    font-family: 'Black Ops One', cursive;
+    font-size: clamp(16px, 3vw, 24px);
+    color: var(--text);
+    letter-spacing: 2px;
+  }
+
+  #damage-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 45;
+    border: 0px solid transparent;
+    transition: border 0.1s, background 0.1s;
+    background: transparent;
+  }
+  #damage-overlay.hit {
+    border: 8px solid rgba(255,0,0,0.7);
+    background: rgba(255,0,0,0.12);
+  }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <div id="world">
+    <div class="sky"></div>
+    <div class="sun-orb"></div>
+    <div class="mountains" id="mountains"></div>
+    <div class="ground" id="ground-layer"></div>
+  </div>
+
+  <div id="damage-overlay"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <div id="top-bar">
+      <div id="title-hud">FAR CRY: OUTPOST</div>
+      <div id="wave-display">WAVE 1</div>
+      <div id="score-display">SCORE: 0</div>
+    </div>
+    <div id="bottom-bar">
+      <div class="stat-block">
+        <div class="stat-label">Health</div>
+        <div id="health-bar-container"><div id="health-bar" style="width:100%"></div></div>
+      </div>
+      <div class="stat-block" style="align-items:center">
+        <div class="stat-label">Kills</div>
+        <div id="kills-display">0</div>
+      </div>
+      <div class="stat-block" style="align-items:flex-end">
+        <div class="stat-label">Ammo</div>
+        <div id="ammo-display">30<span> / ∞</span></div>
+      </div>
+    </div>
+    <div id="crosshair">
+      <div class="ch-line ch-h"></div>
+      <div class="ch-line ch-h2"></div>
+      <div class="ch-line ch-v"></div>
+      <div class="ch-line ch-v2"></div>
+      <div class="ch-line ch-dot"></div>
+    </div>
+    <div id="controls-hint">A/D — MOVE &nbsp;|&nbsp; W/SPACE — JUMP &nbsp;|&nbsp; CLICK — SHOOT &nbsp;|&nbsp; R — RELOAD</div>
+  </div>
+
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <div class="screen-title">FAR CRY<br>OUTPOST</div>
+    <div class="screen-sub">LIBERATE THE OUTPOST. TAKE DOWN THE ENEMY.</div>
+    <div class="screen-sub" style="color:#555">SURVIVE AS LONG AS YOU CAN</div>
+    <button class="btn" id="start-btn">DEPLOY</button>
+    <div class="screen-sub" style="color:#444;font-size:10px">A/D: MOVE • W/SPACE: JUMP • CLICK: SHOOT • R: RELOAD</div>
+  </div>
+
+  <!-- Wave Screen -->
+  <div id="wave-screen">
+    <div class="screen-title" id="wave-title">WAVE 2</div>
+    <div class="danger-text">INCOMING!</div>
+    <div class="screen-sub" id="wave-sub">More enemies detected</div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="game-over-screen">
+    <div class="screen-title">MISSION<br>FAILED</div>
+    <div class="danger-text">OPERATOR DOWN</div>
+    <div class="score-final" id="final-score">SCORE: 0</div>
+    <div class="score-final" id="final-kills" style="font-size:16px">KILLS: 0</div>
+    <button class="btn" id="restart-btn">REDEPLOY</button>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const container = $('game-container');
+
+let gameState = null;
+let animFrame = null;
+let keys = {};
+
+const W = () => container.clientWidth;
+const H = () => container.clientHeight;
+
+// ---- WORLD SETUP ----
+function buildWorld() {
+  // Mountains
+  const mtn = $('mountains');
+  mtn.innerHTML = '';
+  const peaks = [{l:5,s:180,w:300},{l:18,s:220,w:420},{l:35,s:150,w:260},{l:50,s:200,w:360},{l:65,s:170,w:300},{l:78,s:190,w:340},{l:88,s:140,w:240}];
+  peaks.forEach(p => {
+    const m = document.createElement('div');
+    m.className = 'mountain';
+    m.style.cssText = `left:${p.l}%;border-left-width:${p.w/2}px;border-right-width:${p.w/2}px;border-bottom-width:${p.s}px;opacity:0.7`;
+    mtn.appendChild(m);
+  });
+
+  // Trees
+  document.querySelectorAll('.tree').forEach(t => t.remove());
+  const treeData = [
+    {l:3,th:120,tw:70,tt:6},{l:8,th:90,tw:55,tt:5},{l:14,th:140,tw:80,tt:7},
+    {l:22,th:100,tw:60,tt:5},{l:30,th:130,tw:75,tt:6},{l:40,th:110,tw:65,tt:5},
+    {l:55,th:150,tw:90,tt:7},{l:65,th:95,tw:58,tt:5},{l:73,th:120,tw:70,tt:6},
+    {l:82,th:105,tw:62,tt:5},{l:90,th:135,tw:78,tt:6},{l:96,th:80,tw:50,tt:4}
+  ];
+  treeData.forEach(t => {
+    const tree = document.createElement('div');
+    tree.className = 'tree';
+    tree.style.left = t.l + '%';
+    const col = `hsl(${120 + Math.random()*30},${40+Math.random()*20}%,${18+Math.random()*12}%)`;
+    tree.innerHTML = `<div class="tree-top" style="border-left-width:${t.tw/2}px;border-right-width:${t.tw/2}px;border-bottom-width:${t.th}px;border-bottom-color:${col}"></div><div class="tree-trunk" style="width:${t.tt}px;height:${Math.floor(t.th/5)}px"></div>`;
+    container.insertBefore(tree, $('hud'));
+  });
+}
+
+// ---- GAME INIT ----
+function initGame() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  document.querySelectorAll('.enemy,.bullet,.collectible,.hit-effect,.explosion,.muzzle-flash').forEach(e=>e.remove());
+
+  gameState = {
+    player: {
+      x: W() * 0.15,
+      y: 0,
+      vy: 0,
+      onGround: true,
+      hp: 100,
+      maxHp: 100,
+      ammo: 30,
+      maxAmmo: 30,
+      dir: 1,
+      shootCooldown: 0,
+      reloading: false,
+      reloadTimer: 0,
+      invincible: 0,
+    },
+    enemies: [],
+    bullets: [],
+    collectibles: [],
+    score: 0,
+    kills: 0,
+    wave: 1,
+    waveTimer: 0,
+    waveActive: true,
+    enemiesLeft: 0,
+    spawnTimer: 0,
+    spawnQueue: 0,
+    lastTime: null,
+    running: true,
+    waveTransition: false,
+  };
+
+  buildWorld();
+  setupPlayer();
+  spawnWave(1);
+  spawnCollectibles();
+  gameLoop(performance.now());
+}
+
+function setupPlayer() {
+  let p = $('player-el');
+  if (!p) {
+    p = document.createElement('div');
+    p.id = 'player-el';
+    p.className = '';
+    p.innerHTML = `<div class="player-body"><div class="p-head"></div><div class="p-torso"></div><div class="p-legs"><div class="p-leg"></div><div class="p-leg"></div></div></div>`;
+    container.insertBefore(p, $('hud'));
+  }
+  p.style.cssText = `position:absolute;bottom:40%;display:flex;flex-direction:column;align-items:center;z-index:10;`;
+}
+
+// ---- WAVES ----
+function spawnWave(w) {
+  const count = 3 + (w * 2);
+  gameState.spawnQueue = count;
+  gameState.enemiesLeft = count;
+  gameState.spawnTimer = 0;
+  updateWaveHUD();
+}
+
+function updateWaveHUD() {
+  $('wave-display').textContent = `WAVE ${gameState.wave}`;
+}
+
+function spawnEnemy(w) {
+  const side = Math.random() < 0.5 ? 'left' : 'right';
+  const x = side === 'left' ? -40 : W() + 40;
+  const hp = 20 + (w * 5);
+  const speed = 60 + (w * 8) + Math.random() * 20;
+
+  const el = document.createElement('div');
+  el.className = 'enemy';
+  el.innerHTML = `<div style="position:relative"><div class="enemy-health"><div class="enemy-health-bar" style="width:100%"></div></div><div class="e-head"></div></div><div class="e-body"></div><div class="e-legs"><div class="e-leg"></div><div class="e-leg"></div></div>`;
+  el.style.left = x + 'px';
+  container.insertBefore(el, $('hud'));
+
+  gameState.enemies.push({
+    el, x, hp, maxHp: hp,
+    speed: side === 'left' ? speed : -speed,
+    shootTimer: 1.5 + Math.random() * 2,
+    dir: side === 'left' ? 1 : -1,
+  });
+}
+
+function spawnCollectibles() {
+  for (let i = 0; i < 3; i++) {
+    const x = W() * (0.2 + Math.random() * 0.6);
+    const type = Math.random() < 0.5 ? 'ammo' : 'health';
+    const el = document.createElement('div');
+    el.className = `collectible ${type}-pick`;
+    el.style.left = x + 'px';
+    container.insertBefore(el, $('hud'));
+    gameState.collectibles.push({el, x, type});
+  }
+}
+
+// ---- GAME LOOP ----
+function gameLoop(ts) {
+  if (!gameState.running) return;
+  const dt = Math.min((ts - (gameState.lastTime || ts)) / 1000, 0.05);
+  gameState.lastTime = ts;
+  update(dt);
+  animFrame = requestAnimationFrame(gameLoop);
+}
+
+const GROUND_Y = 0;
+
+function update(dt) {
+  const gs = gameState;
+  const pw = W(), ph = H();
+  const p = gs.player;
+
+  // --- Player movement ---
+  const moveSpeed = 200;
+  let moving = false;
+  if (keys['a'] || keys['arrowleft']) { p.x -= moveSpeed * dt; p.dir = -1; moving = true; }
+  if (keys['d'] || keys['arrowright']) { p.x += moveSpeed * dt; p.dir = 1; moving = true; }
+  p.x = Math.max(10, Math.min(pw - 30, p.x));
+
+  // Jump
+  if ((keys['w'] || keys[' '] || keys['arrowup']) && p.onGround) {
+    p.vy = -500;
+    p.onGround = false;
+  }
+
+  // Gravity
+  if (!p.onGround) {
+    p.vy += 1200 * dt;
+    p.y += p.vy * dt;
+    if (p.y >= GROUND_Y) { p.y = GROUND_Y; p.vy = 0; p.onGround = true; }
+  }
+
+  // Shoot cooldown
+  if (p.shootCooldown > 0) p.shootCooldown -= dt;
+  if (p.invincible > 0) p.invincible -= dt;
+
+  // Reload
+  if (p.reloading) {
+    p.reloadTimer -= dt;
+    if (p.reloadTimer <= 0) { p.ammo = p.maxAmmo; p.reloading = false; updateAmmoHUD(); }
+  }
+
+  // Player element
+  const pel = $('player-el');
+  if (pel) {
+    pel.style.left = p.x + 'px';
+    pel.style.bottom = `calc(40% + ${-p.y}px)`;
+    pel.style.transform = p.dir < 0 ? 'scaleX(-1)' : 'scaleX(1)';
+    pel.className = moving ? 'walking' : '';
+  }
+
+  // Ground line and fire height in pixels from bottom
+  const groundPx = ph * 0.4;
+  const playerFirePx = groundPx + (-p.y) + 28; // gun barrel height
+
+  // --- Bullets ---
+  gs.bullets = gs.bullets.filter(b => {
+    b.x += b.vx * dt;
+    b.bottomPx += (b.vy || 0) * dt;
+    b.el.style.left = b.x + 'px';
+    b.el.style.bottom = b.bottomPx + 'px';
+    const alive = b.x > -50 && b.x < pw + 50;
+    if (!alive) b.el.remove();
+    return alive;
+  });
+
+  // Player bullet vs enemy collision
+  gs.bullets.forEach(b => {
+    if (b.dead || b.isEnemy) return;
+    gs.enemies.forEach(e => {
+      const enemyFirePx = groundPx + 28;
+      if (Math.abs(b.x - e.x) < 24 && Math.abs(b.bottomPx - enemyFirePx) < 36) {
+        e.hp -= 25;
+        showHit(e.x, 30, 25);
+        updateEnemyHealth(e);
+        b.dead = true; b.x = -9999;
+        if (e.hp <= 0) killEnemy(e);
+      }
+    });
+  });
+
+  // Enemy bullet vs player
+  gs.bullets.forEach(b => {
+    if (b.dead || !b.isEnemy || p.invincible > 0) return;
+    if (Math.abs(b.x - p.x) < 24 && Math.abs(b.bottomPx - playerFirePx) < 36) {
+      p.hp -= 12;
+      p.invincible = 0.8;
+      b.dead = true; b.x = -9999;
+      showDamage();
+      updateHealthHUD();
+      if (p.hp <= 0) { endGame(); return; }
+    }
+  });
+
+  // --- Enemies ---
+  gs.enemies.forEach(e => {
+    e.x += e.speed * dt;
+    e.el.style.left = e.x + 'px';
+    e.el.style.transform = e.speed > 0 ? 'scaleX(-1)' : 'scaleX(1)';
+
+    // Bounce off walls
+    if (e.x < 20 || e.x > pw - 20) e.speed *= -1;
+
+    // Enemy shoot
+    e.shootTimer -= dt;
+    if (e.shootTimer <= 0) {
+      e.shootTimer = 1.5 + Math.random() * 2;
+      shootEnemyBullet(e, p);
+    }
+
+    // Melee damage
+    if (Math.abs(e.x - p.x) < 20 && p.invincible <= 0) {
+      p.hp -= 8;
+      p.invincible = 1.2;
+      showDamage();
+      updateHealthHUD();
+      if (p.hp <= 0) { endGame(); return; }
+    }
+  });
+
+  // Spawn queue
+  if (gs.spawnQueue > 0) {
+    gs.spawnTimer -= dt;
+    if (gs.spawnTimer <= 0) {
+      spawnEnemy(gs.wave);
+      gs.spawnQueue--;
+      gs.spawnTimer = 1.0;
+    }
+  }
+
+  // Wave complete?
+  if (gs.enemies.length === 0 && gs.spawnQueue === 0 && !gs.waveTransition) {
+    gs.waveTransition = true;
+    setTimeout(() => nextWave(), 1500);
+  }
+
+  // Collectibles
+  gs.collectibles = gs.collectibles.filter(c => {
+    if (Math.abs(c.x - p.x) < 20) {
+      if (c.type === 'ammo') { p.ammo = Math.min(p.maxAmmo, p.ammo + 15); p.reloading = false; updateAmmoHUD(); }
+      else { p.hp = Math.min(p.maxHp, p.hp + 30); updateHealthHUD(); }
+      c.el.remove();
+      return false;
+    }
+    return true;
+  });
+}
+
+function shootEnemyBullet(e, p) {
+  const dx = p.x - e.x;
+  const dist = Math.max(Math.abs(dx), 1);
+  const speed = 300;
+  // Spawn bullet at enemy gun height (same formula as playerFirePx in update)
+  const groundPx = H() * 0.4;
+  const spawnBottom = groundPx + 28;
+  const el = document.createElement('div');
+  el.className = 'bullet enemy-bullet';
+  el.style.left = e.x + 'px';
+  el.style.bottom = spawnBottom + 'px';
+  container.insertBefore(el, $('hud'));
+  gameState.bullets.push({el, x: e.x, bottomPx: spawnBottom, vx: (dx / dist) * speed, vy: 0, isEnemy: true});
+}
+
+function playerShoot(mouseX, mouseY) {
+  const p = gameState.player;
+  if (p.reloading || p.ammo <= 0 || p.shootCooldown > 0) return;
+  p.ammo--;
+  p.shootCooldown = 0.18;
+  if (p.ammo === 0) { startReload(); return; }
+  updateAmmoHUD();
+
+  const groundPx = H() * 0.4;
+  const fireBottom = groundPx + (-p.y) + 28; // gun barrel height from bottom
+
+  // Bullet spawns at gun tip (offset by direction)
+  const gunTipX = p.x + (p.dir > 0 ? 28 : -4);
+  // Direction toward mouse click - convert mouseY to bottomPx space
+  const mouseBottom = H() - mouseY;
+  const dx = mouseX - gunTipX;
+  const dy = mouseBottom - fireBottom;
+  const dist = Math.max(Math.sqrt(dx*dx + dy*dy), 1);
+  const speed = 700;
+
+  const el = document.createElement('div');
+  el.className = 'bullet';
+  el.style.left = gunTipX + 'px';
+  el.style.bottom = fireBottom + 'px';
+  container.insertBefore(el, $('hud'));
+  gameState.bullets.push({el, x: gunTipX, bottomPx: fireBottom, vx: (dx/dist)*speed, vy: (dy/dist)*speed, isEnemy: false});
+
+  // Muzzle flash at gun tip
+  const flash = document.createElement('div');
+  flash.className = 'muzzle-flash';
+  flash.style.cssText = `left:${gunTipX + (p.dir > 0 ? 6 : -6)}px;bottom:${fireBottom - 4}px;position:absolute;`;
+  container.appendChild(flash);
+  setTimeout(() => flash.remove(), 120);
+}
+
+function startReload() {
+  const p = gameState.player;
+  p.reloading = true;
+  p.reloadTimer = 1.8;
+  $('ammo-display').textContent = 'RELOAD';
+  $('ammo-display').style.color = '#ff4400';
+}
+
+function killEnemy(e) {
+  const gs = gameState;
+  gs.score += 100 + gs.wave * 50;
+  gs.kills++;
+  gs.enemiesLeft = Math.max(0, gs.enemiesLeft - 1);
+
+  // Explosion
+  const exp = document.createElement('div');
+  exp.className = 'explosion';
+  exp.style.cssText = `left:${e.x}px;bottom:calc(40% + 30px);`;
+  container.appendChild(exp);
+  setTimeout(() => exp.remove(), 500);
+
+  e.el.remove();
+  gs.enemies = gs.enemies.filter(en => en !== e);
+  $('score-display').textContent = `SCORE: ${gs.score}`;
+  $('kills-display').textContent = gs.kills;
+
+  // Random collectible drop
+  if (Math.random() < 0.35) {
+    const type = Math.random() < 0.5 ? 'ammo' : 'health';
+    const el = document.createElement('div');
+    el.className = `collectible ${type}-pick`;
+    el.style.left = e.x + 'px';
+    container.insertBefore(el, $('hud'));
+    gs.collectibles.push({el, x: e.x, type});
+  }
+}
+
+function showHit(x, y, dmg) {
+  const el = document.createElement('div');
+  el.className = 'hit-effect';
+  el.textContent = `-${dmg}`;
+  el.style.cssText = `left:${x}px;bottom:calc(40% + ${60}px);`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 800);
+}
+
+function updateEnemyHealth(e) {
+  const bar = e.el.querySelector('.enemy-health-bar');
+  if (bar) bar.style.width = Math.max(0, (e.hp / e.maxHp) * 100) + '%';
+}
+
+function showDamage() {
+  const ov = $('damage-overlay');
+  ov.classList.add('hit');
+  setTimeout(() => ov.classList.remove('hit'), 200);
+}
+
+function updateHealthHUD() {
+  const p = gameState.player;
+  const pct = Math.max(0, (p.hp / p.maxHp) * 100);
+  $('health-bar').style.width = pct + '%';
+  if (pct < 30) {
+    $('health-bar').style.background = 'linear-gradient(90deg,#cc0000,#ff2200)';
+    $('health-bar').style.boxShadow = '0 0 8px rgba(255,0,0,0.7)';
+  } else {
+    $('health-bar').style.background = 'linear-gradient(90deg,#00cc44,#00ff55)';
+    $('health-bar').style.boxShadow = '0 0 6px rgba(0,255,85,0.5)';
+  }
+}
+
+function updateAmmoHUD() {
+  const p = gameState.player;
+  $('ammo-display').style.color = '';
+  $('ammo-display').innerHTML = `${p.ammo}<span> / ∞</span>`;
+}
+
+function nextWave() {
+  const gs = gameState;
+  gs.wave++;
+  gs.waveTransition = false;
+
+  const ws = $('wave-screen');
+  ws.style.display = 'flex';
+  $('wave-title').textContent = `WAVE ${gs.wave}`;
+  $('wave-sub').textContent = `${3 + gs.wave * 2} enemies incoming`;
+
+  setTimeout(() => {
+    ws.style.display = 'none';
+    spawnWave(gs.wave);
+    spawnCollectibles();
+    updateWaveHUD();
+  }, 2000);
+}
+
+function endGame() {
+  gameState.running = false;
+  cancelAnimationFrame(animFrame);
+  $('final-score').textContent = `SCORE: ${gameState.score}`;
+  $('final-kills').textContent = `KILLS: ${gameState.kills}`;
+  $('game-over-screen').style.display = 'flex';
+}
+
+// ---- CONTROLS ----
+document.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === ' ') e.preventDefault();
+  if (e.key.toLowerCase() === 'r' && gameState && !gameState.player.reloading && gameState.player.ammo < gameState.player.maxAmmo) {
+    startReload();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+container.addEventListener('click', e => {
+  if (!gameState || !gameState.running) return;
+  playerShoot(e.clientX, e.clientY);
+});
+
+$('start-btn').addEventListener('click', () => {
+  $('start-screen').style.display = 'none';
+  initGame();
+  setTimeout(() => { $('controls-hint').style.opacity = '0'; }, 4000);
+});
+
+$('restart-btn').addEventListener('click', () => {
+  $('game-over-screen').style.display = 'none';
+  initGame();
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  if (gameState && gameState.running) buildWorld();
+});
+
+// Initial world render
+buildWorld();
+</script>
+</body>
+</html>
