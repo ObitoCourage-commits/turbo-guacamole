@@ -54,11 +54,22 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;display:flex;ali
 .section-h2 .gold{color:var(--gold)}
 .section-rule{width:72px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:0 auto 60px}
 .game-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:28px}
-.sort-bar{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:40px;flex-wrap:wrap}
-.sort-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase}
+.filter-section{margin-bottom:40px}
+.filter-row{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.filter-row:last-child{margin-bottom:0}
+.sort-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;white-space:nowrap}
 .sort-btn{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;padding:7px 18px;background:transparent;border:1px solid var(--border2);color:var(--dim);cursor:pointer;text-transform:uppercase;transition:all 0.2s;clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%)}
 .sort-btn:hover{border-color:var(--cyan);color:var(--cyan)}
 .sort-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(240,165,0,0.06)}
+.genre-btn{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;padding:6px 14px;background:transparent;border:1px solid var(--border);color:var(--dim);cursor:pointer;text-transform:uppercase;transition:all 0.2s;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)}
+.genre-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+.genre-btn.active{border-color:var(--purple);color:var(--purple);background:rgba(204,68,255,0.07)}
+.filter-divider{width:1px;height:20px;background:var(--border2);margin:0 4px}
+.no-results{display:none;text-align:center;padding:72px 24px;grid-column:1/-1}
+.no-results.show{display:block}
+.no-results-icon{font-size:48px;margin-bottom:16px;opacity:0.3}
+.no-results-title{font-family:'Orbitron',monospace;font-size:14px;letter-spacing:4px;color:var(--dim);margin-bottom:8px}
+.no-results-sub{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--border2);text-transform:uppercase}
 .game-card.hidden{display:none}
 .game-card{transition:opacity 0.3s,transform 0.35s cubic-bezier(.2,.8,.2,1),border-color 0.3s,box-shadow 0.3s}
 .game-card{position:relative;background:var(--panel);border:1px solid var(--border);overflow:hidden;text-decoration:none;display:block;transition:transform 0.35s cubic-bezier(.2,.8,.2,1),border-color 0.3s,box-shadow 0.3s}
@@ -197,15 +208,39 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
   <h2 class="section-h2">CHOOSE YOUR <span class="gold">MISSION</span></h2>
   <div class="section-rule"></div>
 
-  <div class="sort-bar">
-    <span class="sort-label">Sort by:</span>
-    <button class="sort-btn active" id="sort-recent" onclick="sortGames('recent')">⏱ Recently Added</button>
-    <button class="sort-btn" id="sort-alpha" onclick="sortGames('alpha')">🔤 A–Z</button>
+  <div class="filter-section">
+    <!-- Row 1: Sort order -->
+    <div class="filter-row">
+      <span class="sort-label">Sort:</span>
+      <button class="sort-btn active" id="sort-recent" onclick="setSort('recent',this)">⏱ Recent</button>
+      <button class="sort-btn" id="sort-alpha" onclick="setSort('alpha',this)">🔤 A–Z</button>
+      <div class="filter-divider"></div>
+      <button class="genre-btn active" id="genre-all" onclick="setGenre('all',this)">⬡ All Games</button>
+    </div>
+    <!-- Row 2: Genre filters -->
+    <div class="filter-row">
+      <span class="sort-label">Genre:</span>
+      <button class="genre-btn" onclick="setGenre('shooter',this)">🎯 Shooter</button>
+      <button class="genre-btn" onclick="setGenre('horror',this)">👁 Horror</button>
+      <button class="genre-btn" onclick="setGenre('rpg',this)">⚔️ RPG</button>
+      <button class="genre-btn" onclick="setGenre('action',this)">💥 Action</button>
+      <button class="genre-btn" onclick="setGenre('racing',this)">🏎️ Racing</button>
+      <button class="genre-btn" onclick="setGenre('survival',this)">☢️ Survival</button>
+      <button class="genre-btn" onclick="setGenre('sandbox',this)">⛏️ Sandbox</button>
+      <button class="genre-btn" onclick="setGenre('party',this)">🎉 Party</button>
+      <button class="genre-btn" onclick="setGenre('sim',this)">💘 Sim</button>
+      <button class="genre-btn" onclick="setGenre('strategy',this)">🧠 Strategy</button>
+    </div>
   </div>
 
   <div class="game-grid" id="game-grid">
+    <div class="no-results" id="no-results">
+      <div class="no-results-icon">🎮</div>
+      <div class="no-results-title">NO GAMES FOUND</div>
+      <div class="no-results-sub">No games match this genre yet</div>
+    </div>
 
-    <a class="game-card" data-id="r6" data-name="R6 Siege" data-added="1" href="r6siege.html">
+    <a class="game-card" data-id="r6" data-name="R6 Siege" data-added="1" data-genre="shooter" href="r6siege.html">
       <div class="card-art" data-id="r6">
         <div class="art-grid"></div>
         <div class="art-icon">🎯</div>
@@ -221,7 +256,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="dead" data-name="Dead Sector II" data-added="2" href="dead_sector.html">
+    <a class="game-card" data-id="dead" data-name="Dead Sector II" data-added="2" data-genre="shooter" href="dead_sector.html">
       <div class="card-art" data-id="dead">
         <div class="art-grid"></div>
         <div class="art-icon">💀</div>
@@ -237,7 +272,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="mansion" data-name="Abandoned Mansion" data-added="3" href="abandoned_mansion.html">
+    <a class="game-card" data-id="mansion" data-name="Abandoned Mansion" data-added="3" data-genre="horror" href="abandoned_mansion.html">
       <div class="card-art" data-id="mansion">
         <div class="art-grid"></div>
         <div class="art-icon">👁️</div>
@@ -253,7 +288,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="gta" data-name="GTA Browser City" data-added="4" href="gta.html">
+    <a class="game-card" data-id="gta" data-name="GTA Browser City" data-added="4" data-genre="action" href="gta.html">
       <div class="card-art" data-id="gta">
         <div class="art-grid"></div>
         <div class="art-icon">🚗</div>
@@ -269,7 +304,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="skyrim" data-name="Skyrim" data-added="5" href="skyrim.html">
+    <a class="game-card" data-id="skyrim" data-name="Skyrim" data-added="5" data-genre="rpg" href="skyrim.html">
       <div class="card-art" data-id="skyrim">
         <div class="art-grid"></div>
         <div class="art-icon">🐉</div>
@@ -285,7 +320,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="race" data-name="Forza Horizon" data-added="6" href="race.html">
+    <a class="game-card" data-id="race" data-name="Forza Horizon" data-added="6" data-genre="racing" href="race.html">
       <div class="card-art" data-id="race">
         <div class="art-grid"></div>
         <div class="art-icon">🏎️</div>
@@ -301,7 +336,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="payday" data-name="Payday The Heist" data-added="7" href="payday.html">
+    <a class="game-card" data-id="payday" data-name="Payday The Heist" data-added="7" data-genre="strategy" href="payday.html">
       <div class="card-art" data-id="payday">
         <div class="art-grid"></div>
         <div class="art-icon">💰</div>
@@ -317,7 +352,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="hideandseek" data-name="Hide and Seek Monster Edition" data-added="8" href="hideandseek.html">
+    <a class="game-card" data-id="hideandseek" data-name="Hide and Seek Monster Edition" data-added="8" data-genre="party" href="hideandseek.html">
       <div class="card-art" data-id="hideandseek">
         <div class="art-grid"></div>
         <div class="art-icon">👹</div>
@@ -333,7 +368,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="aidate" data-name="Heartnet exe" data-added="9" href="ai-date.html">
+    <a class="game-card" data-id="aidate" data-name="Heartnet exe" data-added="9" data-genre="sim" href="ai-date.html">
       <div class="card-art" data-id="aidate">
         <div class="art-grid"></div>
         <div class="art-icon">💘</div>
@@ -349,7 +384,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="gemini7" data-name="Gemini 7" data-added="10" href="gemini7.html">
+    <a class="game-card" data-id="gemini7" data-name="Gemini 7" data-added="10" data-genre="horror" href="gemini7.html">
       <div class="card-art" data-id="gemini7">
         <div class="art-grid"></div>
         <div class="art-icon">🛸</div>
@@ -365,7 +400,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="farcry" data-name="Far Cry Outpost" data-added="11" href="farcry-game.html">
+    <a class="game-card" data-id="farcry" data-name="Far Cry Outpost" data-added="11" data-genre="shooter" href="farcry-game.html">
       <div class="card-art" data-id="farcry">
         <div class="art-grid"></div>
         <div class="art-icon">🌿</div>
@@ -381,7 +416,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="stalker" data-name="STALKER Into The Zone" data-added="12" href="stalker-rpg.html">
+    <a class="game-card" data-id="stalker" data-name="STALKER Into The Zone" data-added="12" data-genre="survival" href="stalker-rpg.html">
       <div class="card-art" data-id="stalker">
         <div class="art-grid"></div>
         <div class="art-icon">☢️</div>
@@ -397,7 +432,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="fallout" data-name="Fallout 4 The Commonwealth" data-added="13" href="fallout4-rpg.html">
+    <a class="game-card" data-id="fallout" data-name="Fallout 4 The Commonwealth" data-added="13" data-genre="rpg" href="fallout4-rpg.html">
       <div class="card-art" data-id="fallout">
         <div class="art-grid"></div>
         <div class="art-icon">☢</div>
@@ -413,7 +448,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="poppy" data-name="Poppy Playtime Chapter 1" data-added="14" href="poppy-playtime.html">
+    <a class="game-card" data-id="poppy" data-name="Poppy Playtime Chapter 1" data-added="14" data-genre="horror" href="poppy-playtime.html">
       <div class="card-art" data-id="poppy">
         <div class="art-grid"></div>
         <div class="art-icon">🧸</div>
@@ -429,7 +464,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="minecraft" data-name="2D Minecraft" data-added="15" href="minecraft2d.html">
+    <a class="game-card" data-id="minecraft" data-name="2D Minecraft" data-added="15" data-genre="sandbox" href="minecraft2d.html">
       <div class="card-art" data-id="minecraft">
         <div class="art-grid"></div>
         <div class="art-icon">⛏️</div>
@@ -535,26 +570,79 @@ const tickEl=document.getElementById('ticker');
 const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';}});},{threshold:0.08});
 document.querySelectorAll('.game-card,.feat-card').forEach((el,i)=>{el.style.opacity='0';el.style.transform='translateY(32px)';el.style.transition=`opacity 0.7s ${i*0.1}s ease,transform 0.7s ${i*0.1}s ease,border-color 0.3s,box-shadow 0.35s,transform 0.35s`;obs.observe(el);});
 
-function sortGames(mode) {
+// ── SORT & GENRE FILTER ───────────────────────────────────
+let currentSort  = 'recent';
+let currentGenre = 'all';
+
+// Genre mapping — which genres each tag key matches
+const GENRE_MAP = {
+  shooter:  ['shooter'],
+  horror:   ['horror'],
+  rpg:      ['rpg'],
+  action:   ['action'],
+  racing:   ['racing'],
+  survival: ['survival'],
+  sandbox:  ['sandbox'],
+  party:    ['party'],
+  sim:      ['sim'],
+  strategy: ['strategy'],
+};
+
+function setSort(mode, btn) {
+  currentSort = mode;
   document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('sort-' + mode).classList.add('active');
-  const grid = document.getElementById('game-grid');
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function setGenre(genre, btn) {
+  currentGenre = genre;
+  document.querySelectorAll('.genre-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const grid  = document.getElementById('game-grid');
   const cards = Array.from(grid.querySelectorAll('.game-card'));
-  cards.sort((a, b) => {
-    if (mode === 'alpha') return a.dataset.name.localeCompare(b.dataset.name);
-    else return parseInt(b.dataset.added) - parseInt(a.dataset.added);
+
+  // 1. Determine visibility
+  const visible = cards.filter(c => {
+    if (currentGenre === 'all') return true;
+    const g = c.dataset.genre || '';
+    return (GENRE_MAP[currentGenre] || [currentGenre]).includes(g);
   });
+  const hidden = cards.filter(c => !visible.includes(c));
+
+  // 2. Sort visible cards
+  visible.sort((a, b) => {
+    if (currentSort === 'alpha') return a.dataset.name.localeCompare(b.dataset.name);
+    return parseInt(b.dataset.added) - parseInt(a.dataset.added);
+  });
+
+  // 3. Animate out all, then reorder + animate in
   cards.forEach(c => { c.style.opacity = '0'; c.style.transform = 'translateY(16px)'; });
+
   setTimeout(() => {
-    cards.forEach(c => grid.appendChild(c));
-    cards.forEach((c, i) => {
-      setTimeout(() => {
-        c.style.transition = 'opacity 0.35s ease, transform 0.35s ease, border-color 0.3s, box-shadow 0.35s';
-        c.style.opacity = '1';
-        c.style.transform = 'translateY(0)';
-      }, i * 50);
-    });
-  }, 200);
+    // Append visible first (sorted), hidden last
+    visible.forEach(c => { c.style.display = ''; grid.appendChild(c); });
+    hidden.forEach(c  => { c.style.display = 'none'; grid.appendChild(c); });
+
+    // Show empty state if nothing visible
+    let noRes = document.getElementById('no-results');
+    if (visible.length === 0) {
+      noRes.classList.add('show');
+    } else {
+      noRes.classList.remove('show');
+      visible.forEach((c, i) => {
+        setTimeout(() => {
+          c.style.transition = 'opacity 0.35s ease, transform 0.35s ease, border-color 0.3s, box-shadow 0.35s';
+          c.style.opacity    = '1';
+          c.style.transform  = 'translateY(0)';
+        }, i * 55);
+      });
+    }
+  }, 180);
 }
 
 // ── SUGGESTION BOX ────────────────────────────────────────
