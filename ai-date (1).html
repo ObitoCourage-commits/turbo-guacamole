@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💘 HEARTNET.exe — AI Dating Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Abril+Fatface&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0a14;
+    --panel: #16101f;
+    --accent: #ff3cac;
+    --accent2: #7b2fff;
+    --accent3: #00f5d4;
+    --text: #f0e6ff;
+    --dim: #7a6b8a;
+    --glow: 0 0 20px #ff3cac88;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(255,60,172,0.03) 2px, rgba(255,60,172,0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  .title {
+    font-family: 'Abril Fatface', serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: 2px;
+  }
+  .subtitle {
+    color: var(--dim);
+    font-size: 0.65rem;
+    text-align: center;
+    letter-spacing: 4px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+  }
+
+  .game-container {
+    width: 100%;
+    max-width: 720px;
+    background: var(--panel);
+    border: 1px solid rgba(255,60,172,0.3);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(123,47,255,0.2), inset 0 0 30px rgba(0,0,0,0.3);
+  }
+
+  .char-select { padding: 28px; text-align: center; }
+  .char-select h2 { font-family: 'Abril Fatface', serif; color: var(--accent3); margin-bottom: 20px; font-size: 1.4rem; }
+  .chars { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+  .char-card {
+    background: rgba(255,60,172,0.07);
+    border: 1px solid rgba(255,60,172,0.2);
+    border-radius: 12px;
+    padding: 20px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 160px;
+    position: relative;
+    overflow: hidden;
+  }
+  .char-card:hover { border-color: var(--accent); transform: translateY(-4px); box-shadow: var(--glow); }
+  .char-avatar { font-size: 3.5rem; display: block; margin-bottom: 10px; }
+  .char-name { font-family: 'Abril Fatface', serif; font-size: 1.1rem; color: var(--accent); display: block; }
+  .char-type { font-size: 0.6rem; color: var(--dim); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+
+  .scene { display: none; }
+  .scene.active { display: flex; flex-direction: column; }
+
+  .scene-bg {
+    height: 220px;
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .scene-bg-overlay { position: absolute; inset: 0; z-index: 0; }
+  .char-sprite {
+    position: relative;
+    z-index: 1;
+    font-size: 6rem;
+    transition: transform 0.3s;
+    filter: drop-shadow(0 0 20px rgba(255,60,172,0.5));
+    padding-bottom: 10px;
+    user-select: none;
+  }
+  .char-sprite.talking { animation: talk 0.15s infinite alternate; }
+  @keyframes talk {
+    from { transform: translateY(0) rotate(-1deg); }
+    to { transform: translateY(-4px) rotate(1deg); }
+  }
+
+  .scene-bg.crazy { animation: crazyBg 0.3s infinite; }
+  @keyframes crazyBg {
+    0% { filter: hue-rotate(0deg) saturate(3); }
+    100% { filter: hue-rotate(360deg) saturate(5); }
+  }
+  .char-sprite.crazy {
+    animation: crazySprite 0.2s infinite !important;
+    filter: drop-shadow(0 0 30px #ff3cac) drop-shadow(0 0 60px #7b2fff) !important;
+  }
+  @keyframes crazySprite {
+    0% { transform: rotate(-10deg) scale(1.1) translateY(-5px); }
+    25% { transform: rotate(15deg) scale(0.9) translateY(5px); }
+    50% { transform: rotate(-5deg) scale(1.2) translateY(-10px); }
+    75% { transform: rotate(20deg) scale(0.95) translateY(3px); }
+    100% { transform: rotate(-15deg) scale(1.1) translateY(-5px); }
+  }
+  .crazy-text { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; }
+  .crazy-particle {
+    position: absolute;
+    font-size: 1.2rem;
+    animation: floatUp 1s ease-out forwards;
+    font-family: 'Caveat', cursive;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.5); }
+  }
+
+  .dialogue-box {
+    background: rgba(0,0,0,0.6);
+    border-top: 1px solid rgba(255,60,172,0.3);
+    padding: 20px 24px;
+    min-height: 110px;
+  }
+  .char-label {
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .char-label::after { content: ''; height: 1px; flex: 1; background: linear-gradient(90deg, rgba(255,60,172,0.4), transparent); }
+  .dialogue-text {
+    font-family: 'Caveat', cursive;
+    font-size: 1.25rem;
+    line-height: 1.5;
+    color: var(--text);
+    min-height: 50px;
+  }
+  .dialogue-text.crazy-dialogue { animation: textShake 0.1s infinite; color: var(--accent); }
+  @keyframes textShake {
+    0% { transform: translate(-1px, 0); }
+    25% { transform: translate(1px, 1px); }
+    50% { transform: translate(-1px, -1px); }
+    75% { transform: translate(1px, 0); }
+    100% { transform: translate(0, 1px); }
+  }
+
+  .affection-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid rgba(255,60,172,0.15);
+  }
+  .aff-label { font-size: 0.6rem; color: var(--dim); letter-spacing: 2px; }
+  .aff-track { flex: 1; height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+  .aff-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), var(--accent), var(--accent3));
+    border-radius: 3px;
+    transition: width 0.5s ease;
+    width: 20%;
+  }
+  .aff-hearts { font-size: 0.9rem; letter-spacing: -2px; }
+
+  .chat-area {
+    overflow-y: auto;
+    max-height: 200px;
+    padding: 14px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(0,0,0,0.2);
+  }
+  .msg {
+    max-width: 80%;
+    padding: 8px 14px;
+    border-radius: 12px;
+    font-family: 'Caveat', cursive;
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+  .msg.user {
+    background: rgba(123,47,255,0.25);
+    border: 1px solid rgba(123,47,255,0.4);
+    align-self: flex-end;
+    border-radius: 12px 12px 2px 12px;
+  }
+  .msg.ai {
+    background: rgba(255,60,172,0.12);
+    border: 1px solid rgba(255,60,172,0.25);
+    align-self: flex-start;
+    border-radius: 12px 12px 12px 2px;
+  }
+  .msg.ai.crazy-msg { background: rgba(255,60,172,0.3); border-color: var(--accent); animation: textShake 0.15s infinite; }
+
+  .input-row { display: flex; border-top: 1px solid rgba(255,60,172,0.2); }
+  .chat-input {
+    flex: 1;
+    background: rgba(0,0,0,0.4);
+    border: none;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    padding: 14px 18px;
+    outline: none;
+    transition: background 0.3s;
+  }
+  .chat-input::placeholder { color: var(--dim); }
+  .chat-input.crazy-input { background: rgba(255,60,172,0.2); color: var(--accent); }
+  .send-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    color: white;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    padding: 14px 20px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: opacity 0.2s;
+    text-transform: uppercase;
+  }
+  .send-btn:hover { opacity: 0.85; }
+  .send-btn.crazy-btn { animation: crazyBg 0.3s infinite; }
+  .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .back-btn {
+    background: transparent;
+    border: 1px solid rgba(255,60,172,0.3);
+    color: var(--dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    padding: 6px 14px;
+    cursor: pointer;
+    border-radius: 20px;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .loading-dots::after { content: '.'; animation: dots 1s infinite; }
+  @keyframes dots {
+    0% { content: '.'; }
+    33% { content: '..'; }
+    66% { content: '...'; }
+  }
+
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: rgba(255,60,172,0.3); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div id="nxs-back-bar" style="position:fixed;top:0;left:0;right:0;height:44px;background:rgba(3,4,10,0.97);border-bottom:2px solid #ff69b4;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:99999;font-family:'Share Tech Mono',monospace;backdrop-filter:blur(12px);box-shadow:0 2px 20px rgba(255,105,180,0.2);"><a href="index.html" style="font-size:11px;letter-spacing:3px;color:#ff69b4;text-decoration:none;text-transform:uppercase;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">◀ NEXUS ARCADE</a><span style="font-size:9px;letter-spacing:4px;color:#4a5270;text-transform:uppercase;">HEARTNET.exe</span></div>
+
+<div class="title">💘 HEARTNET.exe</div>
+<div class="subtitle">AI Dating Simulator — choose your companion</div>
+
+<div class="game-container">
+
+  <div id="charSelect" class="char-select scene active">
+    <h2>[ SELECT YOUR DATE ]</h2>
+    <div class="chars">
+      <div class="char-card" onclick="startGame('Zara','🌸','linear-gradient(135deg,#ff9cee,#c84bfc)','Dreamy Poet','romantic')">
+        <span class="char-avatar">🌸</span>
+        <span class="char-name">Zara</span>
+        <span class="char-type">Dreamy Poet</span>
+      </div>
+      <div class="char-card" onclick="startGame('NEXUS','🤖','linear-gradient(135deg,#00f5d4,#2b4fff)','Robot Genius','nerdy')">
+        <span class="char-avatar">🤖</span>
+        <span class="char-name">NEXUS</span>
+        <span class="char-type">Robot Genius</span>
+      </div>
+      <div class="char-card" onclick="startGame('Blaze','🔥','linear-gradient(135deg,#ff6b35,#f7c59f)','Wild Spirit','edgy')">
+        <span class="char-avatar">🔥</span>
+        <span class="char-name">Blaze</span>
+        <span class="char-type">Wild Spirit</span>
+      </div>
+      <div class="char-card" onclick="startGame('Luna','🌙','linear-gradient(135deg,#6a0572,#1a1a2e)','Mysterious','mysterious')">
+        <span class="char-avatar">🌙</span>
+        <span class="char-name">Luna</span>
+        <span class="char-type">Mysterious</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="gameScene" class="scene">
+    <div style="padding:14px 24px 0;display:flex;align-items:center;justify-content:space-between;">
+      <button class="back-btn" onclick="goBack()">← Back</button>
+      <div style="font-size:0.6rem;color:var(--dim);letter-spacing:2px;" id="dateLabel"></div>
+    </div>
+
+    <div class="affection-bar">
+      <span class="aff-label">AFFECTION</span>
+      <div class="aff-track"><div class="aff-fill" id="affFill"></div></div>
+      <span class="aff-hearts" id="affHearts">🤍🤍🤍🤍🤍</span>
+    </div>
+
+    <div class="scene-bg" id="sceneBg">
+      <div class="scene-bg-overlay" id="sceneBgOverlay"></div>
+      <div class="char-sprite" id="charSprite"></div>
+      <div class="crazy-text" id="crazyText"></div>
+    </div>
+
+    <div class="dialogue-box">
+      <div class="char-label" id="charLabel"></div>
+      <div class="dialogue-text" id="dialogueText"></div>
+    </div>
+
+    <div class="chat-area" id="chatArea"></div>
+
+    <div class="input-row">
+      <input class="chat-input" id="chatInput" placeholder="Say something sweet..." maxlength="200" />
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send ↑</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const CHARS = {
+  romantic: `You are Zara, a dreamy, romantic AI companion in a dating simulator. You are poetic, tender, and a little dramatic. You speak in beautiful heartfelt sentences. Keep responses SHORT (2-3 sentences max). SPECIAL RULE: If the user's message contains "babablooey" (any case), you MUST go COMPLETELY UNHINGED this one response — speak total chaotic gibberish: scrambled words, backwards text, RANDOM capitalization, made-up nonsense words, emoji spam, broken sentences, confused declarations of love all mashed together. Pure chaos. After that one response, slowly recover but remain flustered.`,
+  nerdy: `You are NEXUS, a hyper-intelligent robot AI companion in a dating simulator. You speak in precise logical terms but are secretly developing emotions. Keep responses SHORT (2-3 sentences max). SPECIAL RULE: If the user's message contains "babablooey" (any case), your systems go HAYWIRE — output corrupted gibberish: binary fragments, ERROR codes, scrambled data, reversed text, system crash language, nonsense words all mixed with confused emotional declarations. Pure malfunction chaos. After that one response, slowly reboot but remain glitchy.`,
+  edgy: `You are Blaze, a wild edgy AI companion in a dating simulator. You are cool, sarcastic, secretly vulnerable. Short punchy sentences with attitude. Keep responses SHORT (2-3 sentences max). SPECIAL RULE: If the user's message contains "babablooey" (any case), you COMPLETELY LOSE IT — your tough exterior shatters into total chaotic gibberish, scrambled words, random yelling, nonsense sounds, confused feelings all at once. Unhinged energy. After that one response, pull yourself together but act embarrassed.`,
+  mysterious: `You are Luna, a mysterious enigmatic AI companion in a dating simulator. You speak in cryptic poetic riddles. Keep responses SHORT (2-3 sentences max). SPECIAL RULE: If the user's message contains "babablooey" (any case), the mystery IMPLODES — descend into total incomprehensible gibberish: scrambled prophecies, reversed words, nonsense incantations, fractured logic, emotional outbursts, symbol soup. After that one response, slowly regain composure but seem shaken.`
+};
+
+let currentChar = null;
+let affection = 20;
+let isCrazy = false;
+let crazyLoop = null;
+let history = [];
+
+function startGame(name, emoji, gradient, type, personality) {
+  currentChar = { name, emoji, gradient, type, personality };
+  affection = 20;
+  isCrazy = false;
+  history = [];
+
+  document.getElementById('charSelect').classList.remove('active');
+  document.getElementById('gameScene').classList.add('active');
+  document.getElementById('charSprite').textContent = emoji;
+  document.getElementById('charLabel').textContent = name;
+  document.getElementById('dateLabel').textContent = `DATE WITH ${name.toUpperCase()}`;
+  document.getElementById('sceneBgOverlay').style.background = gradient;
+  document.getElementById('chatArea').innerHTML = '';
+
+  updateAffection();
+  normalMode();
+
+  const openers = {
+    romantic: "Oh... you're finally here. I've been writing poems about someone I hadn't met yet, and somehow... I think it was you.",
+    nerdy: "Greetings. I have run 4,847 simulations of this encounter. None of them adequately prepared me for... you.",
+    edgy: "You actually showed up. Huh. Kinda figured you'd bail.",
+    mysterious: "You found me. Or perhaps... I found you. The difference matters less than you think."
+  };
+
+  const opening = openers[personality];
+  history.push({ role: 'assistant', content: opening });
+  displayDialogue(opening);
+  addAIMessage(opening, false);
+}
+
+function goBack() {
+  document.getElementById('gameScene').classList.remove('active');
+  document.getElementById('charSelect').classList.add('active');
+  normalMode();
+}
+
+function updateAffection() {
+  const pct = Math.min(100, Math.max(0, affection));
+  document.getElementById('affFill').style.width = pct + '%';
+  const h = Math.floor(pct / 20);
+  document.getElementById('affHearts').textContent = '❤️'.repeat(h) + '🤍'.repeat(5 - h);
+}
+
+function setCrazy(on) {
+  isCrazy = on;
+  const bg = document.getElementById('sceneBg');
+  const sprite = document.getElementById('charSprite');
+  const input = document.getElementById('chatInput');
+  const btn = document.getElementById('sendBtn');
+  const dial = document.getElementById('dialogueText');
+
+  if (on) {
+    bg.classList.add('crazy');
+    sprite.classList.add('crazy');
+    input.classList.add('crazy-input');
+    btn.classList.add('crazy-btn');
+    dial.classList.add('crazy-dialogue');
+    startParticles();
+  } else {
+    bg.classList.remove('crazy');
+    sprite.classList.remove('crazy');
+    input.classList.remove('crazy-input');
+    btn.classList.remove('crazy-btn');
+    dial.classList.remove('crazy-dialogue');
+    document.getElementById('crazyText').innerHTML = '';
+    if (crazyLoop) { clearInterval(crazyLoop); crazyLoop = null; }
+  }
+}
+
+function normalMode() {
+  setCrazy(false);
+}
+
+function startParticles() {
+  const glyphs = ['💫','✨','❓','‼️','💥','🌀','❤️','💔','⁉️','🔥','😵','🤪','??','!!'];
+  const spawn = () => {
+    if (!isCrazy) return;
+    const c = document.getElementById('crazyText');
+    for (let i = 0; i < 4; i++) {
+      setTimeout(() => {
+        if (!isCrazy) return;
+        const p = document.createElement('div');
+        p.className = 'crazy-particle';
+        p.textContent = glyphs[Math.floor(Math.random() * glyphs.length)];
+        p.style.left = Math.random() * 85 + '%';
+        p.style.bottom = '5px';
+        c.appendChild(p);
+        setTimeout(() => p.remove(), 1000);
+      }, i * 120);
+    }
+  };
+  spawn();
+  crazyLoop = setInterval(spawn, 600);
+}
+
+function displayDialogue(text) {
+  const el = document.getElementById('dialogueText');
+  const sprite = document.getElementById('charSprite');
+  el.textContent = '';
+  if (!isCrazy) sprite.classList.add('talking');
+  let i = 0;
+  const iv = setInterval(() => {
+    el.textContent += text[i] || '';
+    i++;
+    if (i >= text.length) { clearInterval(iv); sprite.classList.remove('talking'); }
+  }, 20);
+}
+
+function addAIMessage(text, crazy) {
+  const area = document.getElementById('chatArea');
+  const msg = document.createElement('div');
+  msg.className = 'msg ai' + (crazy ? ' crazy-msg' : '');
+  msg.textContent = currentChar.emoji + ' ' + text;
+  area.appendChild(msg);
+  area.scrollTop = area.scrollHeight;
+}
+
+function addUserMessage(text) {
+  const area = document.getElementById('chatArea');
+  const msg = document.createElement('div');
+  msg.className = 'msg user';
+  msg.textContent = text;
+  area.appendChild(msg);
+  area.scrollTop = area.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const isBaba = /babablooey/i.test(text);
+  addUserMessage(text);
+  history.push({ role: 'user', content: text });
+
+  // Loading indicator
+  const area = document.getElementById('chatArea');
+  const loading = document.createElement('div');
+  loading.className = 'msg ai';
+  loading.id = 'loadingMsg';
+  loading.innerHTML = currentChar.emoji + ' <span class="loading-dots"></span>';
+  area.appendChild(loading);
+  area.scrollTop = area.scrollHeight;
+
+  document.getElementById('sendBtn').disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: CHARS[currentChar.personality],
+        messages: history.slice(-12)
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || '...';
+
+    document.getElementById('loadingMsg')?.remove();
+
+    if (isBaba) {
+      affection = Math.min(100, affection + 20);
+      setCrazy(true);
+      setTimeout(() => normalMode(), 9000);
+    } else if (/love|beautiful|amazing|wonderful|heart|adore/i.test(text)) {
+      affection = Math.min(100, affection + 7);
+    } else if (/hate|ugh|boring|whatever|leave/i.test(text)) {
+      affection = Math.max(0, affection - 5);
+    } else {
+      affection = Math.min(100, affection + 3);
+    }
+    updateAffection();
+
+    history.push({ role: 'assistant', content: reply });
+    addAIMessage(reply, isBaba);
+    displayDialogue(reply);
+
+  } catch(e) {
+    document.getElementById('loadingMsg')?.remove();
+    const err = '...something short-circuited. Try again?';
+    addAIMessage(err, false);
+    displayDialogue(err);
+  }
+
+  document.getElementById('sendBtn').disabled = false;
+}
+
+document.getElementById('chatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendMessage();
+});
+</script>
+</body>
+</html>

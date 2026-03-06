@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAYDAY: THE HEIST — BOARD GAME</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Teko:wght@400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+:root {
+  --bg: #0a0a0b;
+  --bg2: #111114;
+  --bg3: #18181e;
+  --panel: #1a1a22;
+  --border: #2a2a35;
+  --orange: #ff6a00;
+  --orange2: #e85500;
+  --yellow: #f0c000;
+  --green: #39ff14;
+  --green2: #1a8a00;
+  --red: #cc1100;
+  --blue: #0088ff;
+  --text: #d8d8e0;
+  --text2: #888898;
+  --white: #f0f0f8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Rajdhani', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  cursor: crosshair;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Noise texture */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9998;
+}
+
+#app {
+  max-width: 1150px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+/* ===== HEADER ===== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 16px;
+  border-bottom: 2px solid var(--orange);
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--orange2), transparent);
+}
+
+.logo {
+  font-family: 'Teko', sans-serif;
+  font-size: 3.5rem;
+  font-weight: 700;
+  color: var(--orange);
+  letter-spacing: 8px;
+  text-transform: uppercase;
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(255,106,0,0.5), 2px 2px 0 rgba(0,0,0,0.8);
+}
+
+.logo span {
+  color: var(--yellow);
+  font-size: 1rem;
+  display: block;
+  letter-spacing: 12px;
+  font-weight: 400;
+  margin-top: -4px;
+}
+
+.header-right {
+  text-align: right;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text2);
+  line-height: 1.8;
+}
+
+.heat-bar {
+  display: flex;
+  gap: 3px;
+  margin-top: 6px;
+  justify-content: flex-end;
+}
+
+.heat-pip {
+  width: 14px;
+  height: 8px;
+  background: var(--border);
+  border-radius: 1px;
+  transition: background 0.3s;
+}
+
+.heat-pip.active { background: var(--red); box-shadow: 0 0 6px var(--red); }
+
+/* ===== SETUP ===== */
+#setup-screen {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--orange);
+  border-radius: 2px;
+  padding: 32px;
+  max-width: 560px;
+  margin: 20px auto;
+  position: relative;
+}
+
+#setup-screen::before {
+  content: 'CREW BRIEFING';
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  background: var(--orange);
+  color: #000;
+  font-family: 'Teko', sans-serif;
+  font-size: 0.85rem;
+  letter-spacing: 3px;
+  padding: 1px 10px;
+}
+
+.setup-h2 {
+  font-family: 'Teko', sans-serif;
+  font-size: 2rem;
+  color: var(--white);
+  letter-spacing: 4px;
+  margin-bottom: 6px;
+}
+
+.setup-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text2);
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+}
+
+.section-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--orange);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.crew-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.crew-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 8px 10px;
+  transition: border-color 0.2s;
+}
+
+.crew-slot.enabled { border-color: var(--orange2); }
+
+.crew-icon {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.crew-slot input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--white);
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  width: 100%;
+  padding: 2px 0;
+  outline: none;
+  letter-spacing: 1px;
+}
+
+.crew-slot input:focus { border-bottom-color: var(--orange); }
+.crew-slot input::placeholder { color: var(--text2); font-weight: 400; }
+
+.count-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+
+.tag-btn {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  font-family: 'Teko', sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  padding: 4px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-radius: 1px;
+}
+
+.tag-btn:hover { border-color: var(--orange2); color: var(--white); }
+.tag-btn.active { background: var(--orange); border-color: var(--orange); color: #000; font-weight: 700; }
+
+.start-btn {
+  background: var(--orange);
+  border: none;
+  color: #000;
+  font-family: 'Teko', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  padding: 12px 36px;
+  cursor: pointer;
+  display: block;
+  width: 100%;
+  margin-top: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.15s;
+  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+}
+
+.start-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0);
+  transition: background 0.15s;
+}
+
+.start-btn:hover { background: var(--yellow); transform: translateY(-2px); }
+.start-btn:active { transform: translateY(1px); }
+
+/* ===== GAME SCREEN ===== */
+#game-screen { display: none; }
+
+/* CREW CARDS */
+.crew-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.crew-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--border);
+  padding: 10px 14px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.crew-card.active-player {
+  border-top-color: var(--orange);
+  box-shadow: 0 0 20px rgba(255,106,0,0.15), inset 0 0 20px rgba(255,106,0,0.03);
+}
+
+.crew-card.active-player::after {
+  content: '▶ YOUR TURN';
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--orange);
+  letter-spacing: 1px;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.cc-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cc-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.cc-name {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.1rem;
+  color: var(--white);
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.cc-role {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text2);
+}
+
+.cc-money {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.8rem;
+  letter-spacing: 1px;
+  line-height: 1;
+  margin: 4px 0;
+}
+
+.cc-money.pos { color: var(--green); text-shadow: 0 0 10px rgba(57,255,20,0.3); }
+.cc-money.neg { color: var(--red); text-shadow: 0 0 10px rgba(204,17,0,0.3); }
+
+.cc-stats {
+  display: flex;
+  gap: 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.58rem;
+  color: var(--text2);
+}
+
+.cc-stat { display: flex; flex-direction: column; gap: 1px; }
+.cc-stat span:last-child { color: var(--text); }
+
+/* OPERATION BOARD */
+.board-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 14px;
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.board-wrap::before {
+  content: 'OPERATION: HEAT STREET';
+  position: absolute;
+  top: -9px;
+  left: 16px;
+  background: var(--panel);
+  padding: 0 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--orange);
+  letter-spacing: 2px;
+}
+
+.board-wrap::after {
+  content: attr(data-month);
+  position: absolute;
+  top: -9px;
+  right: 16px;
+  background: var(--panel);
+  padding: 0 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+
+.spaces-grid {
+  display: grid;
+  grid-template-columns: repeat(11, 1fr);
+  gap: 3px;
+}
+
+.space {
+  border: 1px solid var(--border);
+  border-radius: 1px;
+  padding: 4px 2px;
+  text-align: center;
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: default;
+  transition: all 0.15s;
+}
+
+.sp-icon { font-size: 1.1rem; line-height: 1; }
+.sp-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.42rem;
+  color: var(--text2);
+  margin-top: 2px;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.sp-amt {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.42rem;
+  margin-top: 1px;
+  font-weight: 700;
+}
+
+/* Space types */
+.sp-payday { background: rgba(240,192,0,0.12); border-color: var(--yellow); }
+.sp-payday .sp-label { color: var(--yellow); }
+.sp-intel { background: rgba(0,136,255,0.08); border-color: rgba(0,136,255,0.3); }
+.sp-police { background: rgba(204,17,0,0.1); border-color: rgba(204,17,0,0.35); }
+.sp-heist { background: rgba(255,106,0,0.1); border-color: rgba(255,106,0,0.35); }
+.sp-loot { background: rgba(57,255,20,0.06); border-color: rgba(57,255,20,0.25); }
+.sp-safe { background: rgba(150,100,50,0.12); border-color: rgba(150,100,50,0.3); }
+.sp-corrupt { background: rgba(128,0,128,0.1); border-color: rgba(128,0,128,0.3); }
+.sp-heat { background: rgba(255,0,0,0.08); border-color: rgba(255,0,0,0.25); }
+.sp-blank { background: var(--bg3); }
+
+/* Current space highlight */
+.space.is-current {
+  box-shadow: 0 0 0 2px var(--orange), 0 0 12px rgba(255,106,0,0.4);
+  z-index: 5;
+  transform: scale(1.06);
+}
+
+.tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  justify-content: center;
+  margin-top: 2px;
+}
+
+.token {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.5);
+}
+
+/* CONTROLS */
+.ops-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--orange);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.turn-block {}
+
+.turn-name {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.5rem;
+  color: var(--white);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.turn-hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  color: var(--text2);
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.dice-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dice {
+  width: 54px;
+  height: 54px;
+  background: var(--bg3);
+  border: 2px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  transition: all 0.1s;
+  position: relative;
+}
+
+.dice.rolling {
+  animation: diceAnim 0.35s ease-in-out;
+  border-color: var(--orange);
+  box-shadow: 0 0 16px rgba(255,106,0,0.4);
+}
+
+@keyframes diceAnim {
+  0%   { transform: rotate(0deg) scale(1); }
+  20%  { transform: rotate(-20deg) scale(1.15); }
+  50%  { transform: rotate(25deg) scale(0.9); }
+  80%  { transform: rotate(-10deg) scale(1.1); }
+  100% { transform: rotate(0deg) scale(1); }
+}
+
+.dice-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+
+.action-btn {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 3px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  padding: 10px 22px;
+  transition: all 0.15s;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  text-transform: uppercase;
+}
+
+.btn-roll {
+  background: var(--orange);
+  color: #000;
+}
+
+.btn-roll:hover { background: var(--yellow); transform: translateY(-2px); }
+.btn-roll:active { transform: translateY(1px); }
+
+.btn-end {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  display: none;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+}
+
+.btn-end:hover { border-color: var(--orange2); color: var(--white); }
+
+.heat-indicator {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.heat-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text2);
+  letter-spacing: 2px;
+}
+
+.heat-level {
+  font-family: 'Teko', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 2px;
+}
+
+.heat-pips {
+  display: flex;
+  gap: 3px;
+}
+
+.h-pip {
+  width: 16px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 1px;
+  transition: all 0.3s;
+}
+
+.h-pip.on { background: var(--red); box-shadow: 0 0 6px rgba(204,17,0,0.6); }
+
+/* INTEL LOG */
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.log-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--orange);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.log-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  box-shadow: 0 0 6px var(--green);
+}
+
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.7)} }
+
+.log-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  height: 130px;
+  overflow-y: auto;
+  padding: 8px 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.7rem;
+}
+
+.log-line {
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+.log-line::before { content: '> '; color: var(--border); }
+.log-line.pos { color: var(--green); }
+.log-line.neg { color: #ff5555; }
+.log-line.sys { color: var(--orange); }
+.log-line.warn { color: var(--yellow); }
+
+.log-box::-webkit-scrollbar { width: 4px; }
+.log-box::-webkit-scrollbar-track { background: #000; }
+.log-box::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* MODAL */
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  backdrop-filter: blur(3px);
+}
+
+.modal-bg.show { display: flex; animation: fadeIn 0.15s; }
+
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--orange);
+  padding: 28px 32px;
+  max-width: 420px;
+  width: 90%;
+  position: relative;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+.modal::before {
+  content: attr(data-type);
+  position: absolute;
+  top: -11px;
+  left: 16px;
+  background: var(--orange);
+  color: #000;
+  font-family: 'Teko', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 3px;
+  padding: 1px 10px;
+}
+
+.modal-icon { font-size: 3rem; margin-bottom: 8px; display: block; }
+
+.modal-title {
+  font-family: 'Teko', sans-serif;
+  font-size: 2.2rem;
+  color: var(--white);
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.modal-desc {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 16px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+.modal-amt {
+  font-family: 'Teko', sans-serif;
+  font-size: 3rem;
+  letter-spacing: 2px;
+  margin-bottom: 16px;
+  line-height: 1;
+}
+
+.modal-amt.pos { color: var(--green); text-shadow: 0 0 20px rgba(57,255,20,0.4); }
+.modal-amt.neg { color: var(--red); text-shadow: 0 0 20px rgba(204,17,0,0.4); }
+.modal-amt.warn { color: var(--yellow); text-shadow: 0 0 20px rgba(240,192,0,0.4); }
+
+.modal-btn {
+  background: var(--orange);
+  border: none;
+  color: #000;
+  font-family: 'Teko', sans-serif;
+  font-size: 1.2rem;
+  letter-spacing: 3px;
+  padding: 8px 24px;
+  cursor: pointer;
+  clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  transition: all 0.1s;
+}
+
+.modal-btn:hover { background: var(--yellow); }
+
+/* OBJECTIVE TRACKER */
+.obj-tracker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.obj-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.6rem;
+  color: var(--text2);
+  letter-spacing: 2px;
+  margin-right: 4px;
+}
+
+.obj-pip {
+  width: 30px;
+  height: 8px;
+  background: var(--border);
+  border-radius: 1px;
+  transition: all 0.4s;
+  position: relative;
+}
+
+.obj-pip.done {
+  background: var(--orange);
+  box-shadow: 0 0 8px rgba(255,106,0,0.5);
+}
+
+/* WINNER */
+#winner-screen {
+  display: none;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.win-title {
+  font-family: 'Teko', sans-serif;
+  font-size: 1rem;
+  color: var(--text2);
+  letter-spacing: 8px;
+  margin-bottom: 8px;
+}
+
+.win-name {
+  font-family: 'Teko', sans-serif;
+  font-size: 5rem;
+  color: var(--orange);
+  letter-spacing: 6px;
+  text-shadow: 0 0 40px rgba(255,106,0,0.5);
+  line-height: 1;
+}
+
+.win-amount {
+  font-family: 'Teko', sans-serif;
+  font-size: 3.5rem;
+  color: var(--green);
+  letter-spacing: 4px;
+  text-shadow: 0 0 30px rgba(57,255,20,0.4);
+}
+
+.win-sub {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--text2);
+  letter-spacing: 2px;
+  margin: 10px 0 30px;
+}
+
+.win-leaderboard {
+  display: inline-block;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 20px 30px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.lb-row {
+  display: flex;
+  gap: 20px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+}
+
+.lb-rank { color: var(--orange); width: 20px; }
+.lb-name { color: var(--white); flex: 1; }
+.lb-cash { color: var(--green); }
+</style>
+</head>
+<body>
+<div id="nxs-back-bar" style="position:fixed;top:0;left:0;right:0;height:44px;background:rgba(3,4,10,0.97);border-bottom:2px solid #f5c518;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:99999;font-family:'Share Tech Mono',monospace;backdrop-filter:blur(12px);box-shadow:0 2px 20px rgba(245,197,24,0.2);"><a href="index.html" style="font-size:11px;letter-spacing:3px;color:#f5c518;text-decoration:none;text-transform:uppercase;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">◀ NEXUS ARCADE</a><span style="font-size:9px;letter-spacing:4px;color:#4a5270;text-transform:uppercase;">PAYDAY: THE HEIST</span></div>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="logo">
+      PAYDAY
+      <span>THE HEIST — BOARD GAME</span>
+    </div>
+    <div class="header-right">
+      <div>CRIMENET v2.1</div>
+      <div id="hdr-player">PLAYERS: —</div>
+      <div id="hdr-month">MONTH: —</div>
+      <div class="heat-bar" id="hdr-heat">
+        <div class="heat-pip"></div>
+        <div class="heat-pip"></div>
+        <div class="heat-pip"></div>
+        <div class="heat-pip"></div>
+        <div class="heat-pip"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETUP -->
+  <div id="setup-screen">
+    <div class="setup-h2">ASSEMBLE YOUR CREW</div>
+    <div class="setup-sub">// BRIEFING REQUIRED BEFORE OPERATION</div>
+
+    <div class="section-label">CREW SIZE</div>
+    <div class="count-row" id="size-btns">
+      <button class="tag-btn" onclick="setCrew(1)">SOLO</button>
+      <button class="tag-btn active" onclick="setCrew(2)">2-MAN</button>
+      <button class="tag-btn" onclick="setCrew(3)">3-MAN</button>
+      <button class="tag-btn" onclick="setCrew(4)">4-MAN</button>
+    </div>
+
+    <div class="section-label">OPERATIVE NAMES</div>
+    <div class="crew-grid" id="crew-inputs"></div>
+
+    <div class="section-label">HEIST DURATION (MONTHS)</div>
+    <div class="count-row" id="month-btns">
+      <button class="tag-btn" onclick="setMonths(1)">1</button>
+      <button class="tag-btn active" onclick="setMonths(2)">2</button>
+      <button class="tag-btn" onclick="setMonths(3)">3</button>
+      <button class="tag-btn" onclick="setMonths(4)">4</button>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">⚡ INITIATE OPERATION</button>
+  </div>
+
+  <!-- GAME -->
+  <div id="game-screen">
+    <!-- Objective pips -->
+    <div class="obj-tracker">
+      <span class="obj-label">OBJECTIVES:</span>
+      <div id="obj-pips"></div>
+    </div>
+
+    <!-- Crew cards -->
+    <div class="crew-strip" id="crew-strip"></div>
+
+    <!-- Board -->
+    <div class="board-wrap" id="board-wrap" data-month="MONTH 1 OF 2">
+      <div class="spaces-grid" id="board"></div>
+    </div>
+
+    <!-- Controls -->
+    <div class="ops-panel">
+      <div class="turn-block">
+        <div class="turn-name" id="turn-name">OPERATIVE</div>
+        <div class="turn-hint" id="turn-hint">AWAITING ORDERS...</div>
+      </div>
+      <div class="dice-wrap">
+        <div class="dice" id="dice">🎲</div>
+        <div class="dice-label">D6</div>
+      </div>
+      <button class="action-btn btn-roll" id="roll-btn" onclick="rollDice()">⚡ ROLL</button>
+      <button class="action-btn btn-end" id="end-btn" onclick="endTurn()">NEXT ▶</button>
+      <div class="heat-indicator">
+        <div class="heat-label">POLICE HEAT</div>
+        <div class="heat-level" id="heat-text" style="color:var(--green)">LOW</div>
+        <div class="heat-pips" id="heat-pips">
+          <div class="h-pip"></div><div class="h-pip"></div><div class="h-pip"></div>
+          <div class="h-pip"></div><div class="h-pip"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="log-header">
+      <div class="log-dot"></div>
+      <div class="log-title">INTEL FEED — LIVE</div>
+    </div>
+    <div class="log-box" id="log"></div>
+  </div>
+
+  <!-- WINNER -->
+  <div id="winner-screen">
+    <div class="win-title">OPERATION COMPLETE — MOST VALUABLE OPERATIVE</div>
+    <div class="win-name" id="win-name">—</div>
+    <div class="win-amount" id="win-amount">$0</div>
+    <div class="win-sub">WALKED WITH THE MOST CASH</div>
+    <div class="win-leaderboard" id="lb"></div>
+    <button class="action-btn btn-roll" onclick="resetGame()" style="font-size:1.2rem;letter-spacing:2px;">↩ NEW OPERATION</button>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-bg" id="modal-bg">
+    <div class="modal" id="modal" data-type="EVENT">
+      <span class="modal-icon" id="m-icon">🎭</span>
+      <div class="modal-title" id="m-title">EVENT</div>
+      <div class="modal-desc" id="m-desc">Something happened.</div>
+      <div class="modal-amt" id="m-amt"></div>
+      <button class="modal-btn" onclick="closeModal()">CONFIRMED</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== BOARD SPACES (PAYDAY 2 themed) =====
+const SPACES = [
+  {type:'payday', label:'PAYDAY!',       icon:'💰', key:'payday'},
+  {type:'intel',  label:'Intel Drop',    icon:'📡'},
+  {type:'police', label:'Bain Contract', icon:'📱', amount:-120, key:'contract'},
+  {type:'blank',  label:'Lay Low',       icon:'🕶️'},
+  {type:'heist',  label:'Bank Job!',     icon:'🏦'},
+  {type:'intel',  label:'Intel Drop',    icon:'📡'},
+  {type:'police', label:'Wanted Level',  icon:'🚔', amount:-90,  key:'wanted'},
+  {type:'loot',   label:'Loot Bag',      icon:'💼'},
+  {type:'intel',  label:'Intel Drop',    icon:'📡'},
+  {type:'safe',   label:'Safe Crack',    icon:'🔐'},
+  {type:'payday', label:'PAYDAY!',       icon:'💰', key:'payday'},
+  {type:'police', label:'Police Fine',   icon:'🚓', amount:-150, key:'fine'},
+  {type:'intel',  label:'Intel Drop',    icon:'📡'},
+  {type:'corrupt',label:'Bribe Guard',   icon:'😈', amount:-80,  key:'bribe'},
+  {type:'blank',  label:'Stash House',   icon:'🏠'},
+  {type:'heist',  label:'Jewelry Store!',icon:'💎'},
+  {type:'intel',  label:'Intel Drop',    icon:'📡'},
+  {type:'police', label:'Swat Raid',     icon:'🚁', amount:-300, key:'swat'},
+  {type:'loot',   label:'Loot Bag',      icon:'💼'},
+  {type:'intel',  label:'Intel Drop',    icon:'📡'},
+  {type:'heat',   label:'High Heat!',    icon:'🔥', amount:-200, key:'heat'},
+  {type:'payday', label:'PAYDAY!',       icon:'💰', key:'payday'},
+  {type:'blank',  label:'Safe Room',     icon:'🛡️'},
+  {type:'intel',  label:'Intel Drop',    icon:'📡'},
+  {type:'police', label:'Fence Cut',     icon:'🔪', amount:-110, key:'fence'},
+  {type:'heist',  label:'Casino Heist!', icon:'🎰'},
+  {type:'intel',  label:'Intel Drop',    icon:'📡'},
+  {type:'police', label:'Cop Bribe',     icon:'💸', amount:-75,  key:'cop'},
+  {type:'loot',   label:'Loot Bag',      icon:'💼'},
+  {type:'intel',  label:'Intel Drop',    icon:'📡'},
+  {type:'payday', label:'JOB COMPLETE!', icon:'💰', key:'endmonth'},
+];
+
+// Intel events — mail equivalent
+const INTEL_EVENTS = [
+  {desc:'Bain tips you to a sloppy guard. Bonus cut!', amount:180, type:'pos'},
+  {desc:'Anonymous tip — fake. You pay informant.', amount:-60, type:'neg'},
+  {desc:'Offshore account cleared. Clean money!', amount:300, type:'pos'},
+  {desc:'Tracker found on getaway car.', amount:-90, type:'neg'},
+  {desc:'Crew intercepted a guard\'s radio. +Cash.', amount:120, type:'pos'},
+  {desc:'Bain says: "Stand by." Nothing happens.', amount:0, type:'sys'},
+  {desc:'Fence sells rare painting you stored.', amount:250, type:'pos'},
+  {desc:'Safe house rent overdue.', amount:-100, type:'neg'},
+  {desc:'Anonymous donation from a fan.', amount:75, type:'pos'},
+  {desc:'Equipment malfunction. Repair costs.', amount:-50, type:'neg'},
+];
+
+// Heist events — random deal
+const HEIST_EVENTS = [
+  {desc:'Perfect execution! No witnesses.', amount:400, type:'pos'},
+  {desc:'Dye pack exploded in the bag.', amount:-250, type:'neg'},
+  {desc:'Cracked the art vault too!', amount:350, type:'pos'},
+  {desc:'Drill broke on the vault door.', amount:-120, type:'neg'},
+  {desc:'Civilian filmed you. Heat spikes.', amount:-200, type:'neg'},
+  {desc:'Scored the manager\'s private stash!', amount:500, type:'pos'},
+];
+
+// Loot events
+const LOOT_EVENTS = [
+  {desc:'Gold bars! Heavy but worth it.', amount:280, type:'pos'},
+  {desc:'Counterfeit cash. Fence won\'t buy.', amount:0, type:'sys'},
+  {desc:'Loose diamonds in the bag.', amount:350, type:'pos'},
+  {desc:'Only dye-marked notes.', amount:-50, type:'neg'},
+  {desc:'USB with account numbers!', amount:200, type:'pos'},
+  {desc:'Marked bills, had to burn them.', amount:-80, type:'neg'},
+];
+
+// Safe crack events
+const SAFE_EVENTS = [
+  {desc:'Cracked it clean. Fat stacks inside!', amount:320, type:'pos'},
+  {desc:'Alarm triggered during crack.', amount:-180, type:'neg'},
+  {desc:'Empty safe. Just paperwork.', amount:0, type:'sys'},
+  {desc:'Found a bearer bond!', amount:400, type:'pos'},
+];
+
+const COLORS  = ['#ff6a00','#39ff14','#0088ff','#ff00cc'];
+const EMOJIS  = ['🎭','😈','🔫','💣'];
+const ROLES   = ['MASTERMIND','GHOST','ENFORCER','TECHNICIAN'];
+const SALARY  = 1100;
+const START_CASH = 300;
+
+// State
+let G = {
+  players: [], cur: 0, pos: [], months: 2, curMonth: 1,
+  heat: 0, rolled: false, gameOver: false
+};
+let cfgCrew = 2, cfgMonths = 2;
+
+// ===== SETUP HELPERS =====
+function setCrew(n) {
+  cfgCrew = n;
+  document.querySelectorAll('#size-btns .tag-btn').forEach((b,i) => b.classList.toggle('active', i === n-1));
+  renderCrewInputs();
+}
+
+function setMonths(n) {
+  cfgMonths = n;
+  document.querySelectorAll('#month-btns .tag-btn').forEach((b,i) => b.classList.toggle('active', i === n-1));
+}
+
+function renderCrewInputs() {
+  const c = document.getElementById('crew-inputs');
+  c.innerHTML = '';
+  for(let i = 0; i < cfgCrew; i++) {
+    c.innerHTML += `
+      <div class="crew-slot enabled">
+        <div class="crew-icon">${EMOJIS[i]}</div>
+        <div style="flex:1">
+          <input id="pname-${i}" type="text" value="OPERATIVE ${i+1}" placeholder="CODENAME" maxlength="12" style="text-transform:uppercase">
+          <div style="font-family:'Share Tech Mono',monospace;font-size:0.55rem;color:${COLORS[i]};letter-spacing:1px;margin-top:2px">${ROLES[i]}</div>
+        </div>
+      </div>`;
+  }
+}
+
+function startGame() {
+  G.players = [];
+  G.pos = [];
+  for(let i = 0; i < cfgCrew; i++) {
+    const raw = document.getElementById(`pname-${i}`)?.value || `OPERATIVE ${i+1}`;
+    const name = raw.toUpperCase();
+    G.players.push({ name, color: COLORS[i], emoji: EMOJIS[i], role: ROLES[i],
+                     money: START_CASH, done: false, monthsDone: 0, loans: 0 });
+    G.pos.push(0);
+  }
+  G.cur = 0; G.months = cfgMonths; G.curMonth = 1;
+  G.heat = 0; G.rolled = false; G.gameOver = false;
+
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('game-screen').style.display = 'block';
+  document.getElementById('hdr-player').textContent = `PLAYERS: ${cfgCrew}`;
+
+  renderAll();
+  log(`OPERATION INITIATED. ${cfgCrew} operative(s). Salary: $${SALARY}/payday.`, 'sys');
+  log(`Duration: ${cfgMonths} month(s). Starting cash: $${START_CASH} each.`, 'sys');
+  log(`--- ${G.players[0].emoji} ${G.players[0].name} goes first ---`, 'sys');
+}
+
+// ===== RENDER =====
+function renderAll() {
+  renderBoard();
+  renderCrew();
+  renderControls();
+  renderObjPips();
+  document.getElementById('board-wrap').dataset.month = `MONTH ${G.curMonth} OF ${G.months}`;
+  document.getElementById('hdr-month').textContent = `MONTH: ${G.curMonth}/${G.months}`;
+  updateHeat();
+}
+
+function renderBoard() {
+  const bd = document.getElementById('board');
+  bd.innerHTML = '';
+  SPACES.forEach((sp, i) => {
+    const div = document.createElement('div');
+    div.className = `space sp-${sp.type}`;
+    const here = G.players.filter((_,pi) => G.pos[pi] === i);
+    const isCur = G.pos[G.cur] === i && !G.gameOver;
+    if(isCur) div.classList.add('is-current');
+
+    const toks = here.map(p => `<div class="token" style="background:${p.color}" title="${p.name}"></div>`).join('');
+    const amtTxt = sp.amount ? `<div class="sp-amt" style="color:${sp.amount<0?'#ff5555':'#55ff55'}">${sp.amount>0?'+':''}$${Math.abs(sp.amount)}</div>` : '';
+
+    div.innerHTML = `<div class="sp-icon">${sp.icon}</div><div class="sp-label">${sp.label}</div>${amtTxt}<div class="tokens">${toks}</div>`;
+    bd.appendChild(div);
+  });
+}
+
+function renderCrew() {
+  const strip = document.getElementById('crew-strip');
+  strip.innerHTML = '';
+  G.players.forEach((p, i) => {
+    const isActive = i === G.cur && !G.gameOver;
+    strip.innerHTML += `
+      <div class="crew-card ${isActive ? 'active-player' : ''}">
+        <div class="cc-top">
+          <div class="cc-avatar" style="background:${p.color}22;border-color:${p.color}44">${p.emoji}</div>
+          <div>
+            <div class="cc-name">${p.name}</div>
+            <div class="cc-role" style="color:${p.color}">${p.role}</div>
+          </div>
+        </div>
+        <div class="cc-money ${p.money >= 0 ? 'pos' : 'neg'}">${fmt(p.money)}</div>
+        <div class="cc-stats">
+          <div class="cc-stat"><span>SPACE</span><span>${G.pos[i]+1}/31</span></div>
+          <div class="cc-stat"><span>LOANS</span><span>${p.loans > 0 ? fmt(-p.loans) : 'NONE'}</span></div>
+          <div class="cc-stat"><span>JOBS</span><span>${p.monthsDone}/${G.months}</span></div>
+        </div>
+      </div>`;
+  });
+}
+
+function renderControls() {
+  const p = G.players[G.cur];
+  if(!p) return;
+  document.getElementById('turn-name').textContent = `${p.emoji} ${p.name}`;
+  document.getElementById('turn-hint').textContent = G.rolled ? 'RESOLVE IN PROGRESS...' : 'AWAITING ROLL ORDER';
+  document.getElementById('roll-btn').style.display = G.rolled ? 'none' : 'inline-block';
+  document.getElementById('end-btn').style.display = G.rolled ? 'inline-block' : 'none';
+}
+
+function renderObjPips() {
+  const cont = document.getElementById('obj-pips');
+  cont.innerHTML = '';
+  for(let i = 1; i <= G.months; i++) {
+    const pip = document.createElement('div');
+    pip.className = `obj-pip ${i < G.curMonth ? 'done' : ''}`;
+    pip.style.display = 'inline-block';
+    pip.style.marginRight = '4px';
+    cont.appendChild(pip);
+  }
+}
+
+function updateHeat() {
+  const lvls = ['LOW','MEDIUM','HIGH','CRITICAL','MAXIMUM'];
+  const colors = ['var(--green)','var(--yellow)','#ff8800','var(--red)','#ff0044'];
+  const lvl = Math.min(4, G.heat);
+  document.getElementById('heat-text').textContent = lvls[lvl];
+  document.getElementById('heat-text').style.color = colors[lvl];
+  document.querySelectorAll('.h-pip').forEach((p,i) => p.classList.toggle('on', i < G.heat));
+  document.querySelectorAll('#hdr-heat .heat-pip').forEach((p,i) => p.classList.toggle('active', i < G.heat));
+}
+
+// ===== DICE & MOVE =====
+function rollDice() {
+  if(G.rolled || G.gameOver) return;
+  const roll = Math.floor(Math.random() * 6) + 1;
+  const faces = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+  const d = document.getElementById('dice');
+  d.classList.add('rolling');
+  setTimeout(() => d.classList.remove('rolling'), 380);
+  d.textContent = faces[roll-1];
+
+  const p = G.players[G.cur];
+  const old = G.pos[G.cur];
+  let next = old + roll;
+
+  log(`${p.emoji} ${p.name} rolls ${roll}.`);
+
+  // Count payday spaces passed
+  const paydays = SPACES.map((s,i) => (s.type==='payday' && i > 0) ? i : -1).filter(x=>x>=0);
+  let bonuses = 0;
+  paydays.forEach(ps => { if(ps > old && ps < next) { bonuses++; log(`💰 Passed PAYDAY — salary collected! +$${SALARY}`, 'pos'); }});
+  if(bonuses > 0) p.money += SALARY * bonuses;
+
+  const END = SPACES.length - 1;
+  if(next >= END) {
+    next = END;
+    G.pos[G.cur] = next;
+    G.rolled = true;
+    renderBoard();
+    p.money += SALARY;
+    log(`${p.emoji} ${p.name} completes the month! JOB DONE. +$${SALARY}`, 'pos');
+    setTimeout(() => {
+      showModal('JOB COMPLETE', '💰', `${p.name} finishes the month!`, `+${fmt(SALARY)}`, 'pos', 'PAYDAY');
+      setTimeout(() => {
+        closeModal();
+        p.monthsDone++;
+        if(p.monthsDone >= G.months) p.done = true;
+        G.pos[G.cur] = 0;
+        G.curMonth = Math.max(...G.players.map(x => x.monthsDone)) + 1;
+        if(G.players.every(x => x.done)) { endGame(); return; }
+        endTurn();
+      }, 1800);
+    }, 200);
+    return;
+  }
+
+  G.pos[G.cur] = next;
+  G.rolled = true;
+  renderBoard();
+  log(`Moved to: ${SPACES[next].icon} ${SPACES[next].label}`);
+  setTimeout(() => resolveSpace(next), 300);
+}
+
+function resolveSpace(idx) {
+  const sp = SPACES[idx];
+  const p = G.players[G.cur];
+
+  if(sp.type === 'payday') {
+    p.money += SALARY;
+    showModal('PAYDAY!', '💰', `${p.name} collects their cut!`, `+${fmt(SALARY)}`, 'pos', 'SALARY');
+    log(`${p.emoji} PAYDAY! +${fmt(SALARY)}`, 'pos');
+
+  } else if(sp.type === 'police' || sp.type === 'heat') {
+    p.money += sp.amount;
+    G.heat = Math.min(5, G.heat + 1);
+    showModal('HEAT SPIKE!', '🚔', sp.label, fmt(sp.amount), 'neg', 'POLICE');
+    log(`${p.emoji} ${sp.label}: ${fmt(sp.amount)} | HEAT ↑`, 'neg');
+
+  } else if(sp.type === 'corrupt') {
+    p.money += sp.amount;
+    showModal('BRIBE PAID', '😈', sp.label, fmt(sp.amount), 'neg', 'EXPENSE');
+    log(`${p.emoji} ${sp.label}: ${fmt(sp.amount)}`, 'neg');
+
+  } else if(sp.type === 'intel') {
+    const ev = INTEL_EVENTS[Math.floor(Math.random() * INTEL_EVENTS.length)];
+    if(ev.amount) p.money += ev.amount;
+    const cls = ev.amount > 0 ? 'pos' : ev.amount < 0 ? 'neg' : 'warn';
+    showModal('INTEL DROP', '📡', ev.desc, ev.amount ? fmt(ev.amount) : 'NOTHING', cls, 'INTEL');
+    log(`${p.emoji} Intel: ${ev.desc}${ev.amount ? ' '+fmt(ev.amount) : ''}`, cls);
+
+  } else if(sp.type === 'heist') {
+    const ev = HEIST_EVENTS[Math.floor(Math.random() * HEIST_EVENTS.length)];
+    if(ev.amount) p.money += ev.amount;
+    if(ev.amount < 0) G.heat = Math.min(5, G.heat + 1);
+    const cls = ev.amount > 0 ? 'pos' : 'neg';
+    showModal('HEIST RESULT', sp.icon, ev.desc, fmt(ev.amount), cls, 'OPERATION');
+    log(`${p.emoji} Heist: ${ev.desc} ${fmt(ev.amount)}`, cls);
+
+  } else if(sp.type === 'loot') {
+    const ev = LOOT_EVENTS[Math.floor(Math.random() * LOOT_EVENTS.length)];
+    if(ev.amount) p.money += ev.amount;
+    const cls = ev.amount > 0 ? 'pos' : ev.amount < 0 ? 'neg' : 'warn';
+    showModal('LOOT BAG', '💼', ev.desc, ev.amount ? fmt(ev.amount) : 'NOTHING', cls, 'LOOT');
+    log(`${p.emoji} Loot: ${ev.desc}${ev.amount ? ' '+fmt(ev.amount) : ''}`, cls);
+
+  } else if(sp.type === 'safe') {
+    const ev = SAFE_EVENTS[Math.floor(Math.random() * SAFE_EVENTS.length)];
+    if(ev.amount) p.money += ev.amount;
+    if(ev.amount < 0) G.heat = Math.min(5, G.heat + 1);
+    const cls = ev.amount > 0 ? 'pos' : ev.amount < 0 ? 'neg' : 'warn';
+    showModal('SAFE CRACKED', '🔐', ev.desc, ev.amount ? fmt(ev.amount) : 'EMPTY', cls, 'SAFE');
+    log(`${p.emoji} Safe: ${ev.desc}${ev.amount ? ' '+fmt(ev.amount) : ''}`, cls);
+
+  } else {
+    // blank — no modal
+    renderCrew();
+    renderControls();
+    return;
+  }
+
+  renderCrew();
+  renderControls();
+}
+
+function endTurn() {
+  const p = G.players[G.cur];
+  if(p.money < 0) log(`⚠️ ${p.name} is in the red! ${fmt(p.money)}`, 'neg');
+
+  G.rolled = false;
+  let next = (G.cur + 1) % G.players.length;
+  let tries = 0;
+  while(G.players[next].done && tries < G.players.length) {
+    next = (next + 1) % G.players.length;
+    tries++;
+  }
+  if(tries >= G.players.length || G.players.every(x => x.done)) { endGame(); return; }
+  G.cur = next;
+  renderAll();
+  log(`--- ${G.players[next].emoji} ${G.players[next].name}'s turn ---`, 'sys');
+}
+
+function endGame() {
+  G.gameOver = true;
+  const sorted = [...G.players].sort((a,b) => b.money - a.money);
+  const winner = sorted[0];
+
+  document.getElementById('game-screen').style.display = 'none';
+  document.getElementById('winner-screen').style.display = 'block';
+  document.getElementById('win-name').textContent = `${winner.emoji} ${winner.name}`;
+  document.getElementById('win-amount').textContent = fmt(winner.money);
+
+  let lb = '';
+  sorted.forEach((p,i) => {
+    lb += `<div class="lb-row">
+      <div class="lb-rank">#${i+1}</div>
+      <div class="lb-name">${p.emoji} ${p.name}</div>
+      <div class="lb-cash">${fmt(p.money)}</div>
+    </div>`;
+  });
+  document.getElementById('lb').innerHTML = lb;
+}
+
+// ===== MODAL =====
+function showModal(title, icon, desc, amt, amtCls, type) {
+  document.getElementById('m-title').textContent = title;
+  document.getElementById('m-icon').textContent = icon;
+  document.getElementById('m-desc').textContent = desc;
+  document.getElementById('m-amt').textContent = amt;
+  document.getElementById('m-amt').className = `modal-amt ${amtCls}`;
+  document.getElementById('modal').dataset.type = type;
+  document.getElementById('modal-bg').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('show');
+  renderControls();
+}
+
+// ===== UTILS =====
+function fmt(n) {
+  return (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString();
+}
+
+function log(msg, cls = '') {
+  const box = document.getElementById('log');
+  if(!box) return;
+  const el = document.createElement('div');
+  el.className = `log-line ${cls}`;
+  el.textContent = msg;
+  box.appendChild(el);
+  box.scrollTop = box.scrollHeight;
+}
+
+function resetGame() {
+  document.getElementById('winner-screen').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'block';
+  document.getElementById('game-screen').style.display = 'none';
+}
+
+// ===== INIT =====
+setCrew(2);
+</script>
+</body>
+</html>

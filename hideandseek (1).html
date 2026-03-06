@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hide & Seek — Monster Edition</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Creepster&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --panel: #1a1a26;
+    --red: #c0392b;
+    --red-glow: #ff4444;
+    --green: #27ae60;
+    --green-glow: #44ff88;
+    --gold: #f39c12;
+    --text: #e8e0d5;
+    --muted: #6b6080;
+    --cell: 52px;
+    --cols: 16;
+    --rows: 12;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Text', serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 20% 50%, rgba(100,0,0,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 30%, rgba(0,0,80,0.2) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Fog particles */
+  .fog { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+  .fog-particle {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.015);
+    filter: blur(40px);
+    animation: fogDrift linear infinite;
+  }
+
+  @keyframes fogDrift {
+    from { transform: translateX(-200px); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    to { transform: translateX(110vw); opacity: 0; }
+  }
+
+  h1 {
+    font-family: 'Creepster', cursive;
+    font-size: 3.5rem;
+    letter-spacing: 0.05em;
+    color: var(--red-glow);
+    text-shadow: 0 0 30px rgba(255,68,68,0.6), 0 0 60px rgba(255,68,68,0.3);
+    margin-bottom: 0.2em;
+  }
+
+  .subtitle {
+    font-style: italic;
+    color: var(--muted);
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* SCREENS */
+  .screen { display: none; flex-direction: column; align-items: center; }
+  .screen.active { display: flex; }
+
+  /* ROLE SELECT */
+  .role-cards { display: flex; gap: 2rem; margin: 2rem 0; }
+
+  .role-card {
+    background: var(--panel);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 2.5rem 2rem;
+    width: 220px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .role-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .role-card.hider::before { background: radial-gradient(circle at 50% 50%, rgba(39,174,96,0.15), transparent 70%); }
+  .role-card.monster::before { background: radial-gradient(circle at 50% 50%, rgba(192,57,43,0.15), transparent 70%); }
+
+  .role-card:hover { transform: translateY(-4px); }
+  .role-card.hider:hover { border-color: var(--green); box-shadow: 0 8px 30px rgba(39,174,96,0.3); }
+  .role-card.monster:hover { border-color: var(--red); box-shadow: 0 8px 30px rgba(192,57,43,0.3); }
+  .role-card:hover::before { opacity: 1; }
+
+  .role-icon { font-size: 3.5rem; margin-bottom: 1rem; display: block; }
+  .role-name {
+    font-family: 'Creepster', cursive;
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
+  .role-card.hider .role-name { color: var(--green-glow); }
+  .role-card.monster .role-name { color: var(--red-glow); }
+  .role-desc { color: var(--muted); font-style: italic; line-height: 1.4; }
+
+  /* GAME SCREEN */
+  #game-screen { gap: 0.8rem; }
+
+  .hud {
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 0.6rem 1.5rem;
+    border: 1px solid #2a2a3a;
+  }
+
+  .hud-item { display: flex; align-items: center; gap: 0.5rem; }
+  .hud-label { color: var(--muted); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.1em; }
+  .hud-val {
+    font-family: 'Creepster', cursive;
+    font-size: 1.4rem;
+  }
+  .hud-val.timer { color: var(--gold); }
+  .hud-val.role-hider { color: var(--green-glow); }
+  .hud-val.role-monster { color: var(--red-glow); }
+
+  /* GRID */
+  .grid-wrap {
+    position: relative;
+    background: var(--surface);
+    border: 2px solid #2a2a3a;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,0,0,0.8), inset 0 0 80px rgba(0,0,0,0.5);
+  }
+
+  canvas { display: block; }
+
+  /* FOG OF WAR overlay for hider */
+  #fog-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
+
+  .controls-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .btn {
+    background: var(--panel);
+    color: var(--text);
+    border: 2px solid #3a3a50;
+    border-radius: 6px;
+    padding: 0.6rem 1.5rem;
+    font-family: 'Creepster', cursive;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .btn:hover { background: #22223a; border-color: #5a5a80; }
+  .btn.danger { border-color: var(--red); color: var(--red-glow); }
+  .btn.danger:hover { background: rgba(192,57,43,0.2); }
+
+  .instructions {
+    color: var(--muted);
+    font-style: italic;
+    font-size: 1rem;
+    text-align: center;
+    max-width: 500px;
+  }
+
+  /* OVERLAY messages */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+  }
+
+  .overlay.hidden { display: none; }
+
+  .overlay-box {
+    background: var(--panel);
+    border-radius: 16px;
+    padding: 3rem 4rem;
+    text-align: center;
+    border: 2px solid #3a3a50;
+    box-shadow: 0 0 80px rgba(0,0,0,0.9);
+    animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes popIn {
+    from { transform: scale(0.7); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .overlay-icon { font-size: 4rem; margin-bottom: 0.5rem; }
+  .overlay-title {
+    font-family: 'Creepster', cursive;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+  .overlay-title.win { color: var(--green-glow); text-shadow: 0 0 20px rgba(68,255,136,0.5); }
+  .overlay-title.lose { color: var(--red-glow); text-shadow: 0 0 20px rgba(255,68,68,0.5); }
+
+  .overlay-sub { color: var(--muted); margin-bottom: 2rem; font-size: 1.2rem; font-style: italic; }
+
+  /* PHASE SCREEN */
+  #phase-screen {
+    gap: 1.5rem;
+    text-align: center;
+  }
+
+  .phase-box {
+    background: var(--panel);
+    border-radius: 12px;
+    padding: 2rem 3rem;
+    border: 2px solid #3a3a50;
+    max-width: 400px;
+  }
+
+  .phase-title {
+    font-family: 'Creepster', cursive;
+    font-size: 2.2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  #countdown-num {
+    font-family: 'Creepster', cursive;
+    font-size: 5rem;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(243,156,18,0.6);
+    line-height: 1;
+  }
+</style>
+</head>
+<body>
+<div id="nxs-back-bar" style="position:fixed;top:0;left:0;right:0;height:44px;background:rgba(3,4,10,0.97);border-bottom:2px solid #ff4444;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:99999;font-family:'Share Tech Mono',monospace;backdrop-filter:blur(12px);box-shadow:0 2px 20px rgba(255,68,68,0.2);"><a href="index.html" style="font-size:11px;letter-spacing:3px;color:#ff4444;text-decoration:none;text-transform:uppercase;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">◀ NEXUS ARCADE</a><span style="font-size:9px;letter-spacing:4px;color:#4a5270;text-transform:uppercase;">HIDE & SEEK</span></div>
+
+<!-- Fog -->
+<div class="fog" id="fog"></div>
+
+<!-- ROLE SELECT -->
+<div class="screen active" id="select-screen">
+  <h1>Hide & Seek</h1>
+  <p class="subtitle">Monster Edition</p>
+  <p style="color:var(--muted); margin-bottom:1rem; font-style:italic;">Two players on one device — choose your role!</p>
+  <div class="role-cards">
+    <div class="role-card hider" onclick="selectRole('hider')">
+      <span class="role-icon">🫣</span>
+      <div class="role-name">Hider</div>
+      <div class="role-desc">Find a dark corner and stay hidden. Survive until time runs out!</div>
+    </div>
+    <div class="role-card monster" onclick="selectRole('monster')">
+      <span class="role-icon">👹</span>
+      <div class="role-name">Monster</div>
+      <div class="role-desc">Hunt down the hider. Chase, corner, and catch your prey!</div>
+    </div>
+  </div>
+  <div class="instructions">
+    Player 1 picks a role, hands to Player 2 for theirs. The hider hides first, then the monster hunts.
+  </div>
+</div>
+
+<!-- PHASE SCREEN (countdown / switch) -->
+<div class="screen" id="phase-screen">
+  <div class="phase-box">
+    <div class="phase-title" id="phase-title">Hider's Turn</div>
+    <div id="phase-desc" style="color:var(--muted); margin-bottom:1.5rem; font-style:italic;">Hand the device to the hider. They have 5 seconds to move before the monster wakes!</div>
+    <div id="countdown-num">5</div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="game-screen">
+  <div class="hud">
+    <div class="hud-item">
+      <span class="hud-label">Playing as</span>
+      <span class="hud-val" id="hud-role">Hider</span>
+    </div>
+    <div style="width:1px; background:#2a2a3a; height:24px;"></div>
+    <div class="hud-item">
+      <span class="hud-label">Time</span>
+      <span class="hud-val timer" id="hud-timer">60</span>
+    </div>
+    <div style="width:1px; background:#2a2a3a; height:24px;"></div>
+    <div class="hud-item">
+      <span class="hud-label">Phase</span>
+      <span class="hud-val" id="hud-phase" style="color:var(--gold);">Hiding</span>
+    </div>
+  </div>
+
+  <div class="grid-wrap" id="grid-wrap">
+    <canvas id="game-canvas"></canvas>
+    <canvas id="fog-canvas"></canvas>
+  </div>
+
+  <div class="controls-row">
+    <span class="instructions" id="game-instructions">Use WASD or Arrow Keys to move</span>
+    <button class="btn danger" onclick="quitGame()">Quit</button>
+  </div>
+</div>
+
+<!-- RESULT OVERLAY -->
+<div class="overlay hidden" id="result-overlay">
+  <div class="overlay-box">
+    <div class="overlay-icon" id="result-icon">🎉</div>
+    <div class="overlay-title" id="result-title">You Win!</div>
+    <div class="overlay-sub" id="result-sub">The hider escaped!</div>
+    <button class="btn" onclick="resetGame()">Play Again</button>
+  </div>
+</div>
+
+<script>
+// ============================
+// FOG ATMOSPHERE
+// ============================
+(function createFog() {
+  const fog = document.getElementById('fog');
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('div');
+    p.className = 'fog-particle';
+    const size = 100 + Math.random() * 300;
+    p.style.cssText = `
+      width:${size}px; height:${size}px;
+      top:${Math.random()*100}%;
+      left:-${size}px;
+      animation-duration:${20+Math.random()*30}s;
+      animation-delay:${Math.random()*20}s;
+    `;
+    fog.appendChild(p);
+  }
+})();
+
+// ============================
+// GAME CONFIG
+// ============================
+const COLS = 16, ROWS = 12;
+const CELL = 52;
+const W = COLS * CELL, H = ROWS * CELL;
+
+let gameState = {
+  phase: 'select',      // select | hiding | hunting | over
+  currentPlayer: null,  // 'hider' | 'monster'
+  roles: {},
+  hider: { x: 2, y: 2 },
+  monster: { x: COLS - 3, y: ROWS - 3 },
+  walls: [],
+  bushes: [],
+  timeLeft: 60,
+  timerInterval: null,
+  countdownInterval: null,
+  caught: false,
+  winner: null,
+};
+
+// ============================
+// MAP GENERATION
+// ============================
+function generateMap() {
+  const walls = [];
+  const bushes = [];
+  const occupied = new Set();
+
+  const addWall = (x, y) => {
+    if (x >= 0 && x < COLS && y >= 0 && y < ROWS) {
+      walls.push({x, y});
+      occupied.add(`${x},${y}`);
+    }
+  };
+
+  // Border walls
+  for (let x = 0; x < COLS; x++) { addWall(x, 0); addWall(x, ROWS-1); }
+  for (let y = 0; y < ROWS; y++) { addWall(0, y); addWall(COLS-1, y); }
+
+  // Interior walls (L-shapes, corridors)
+  const wallBlocks = [
+    // Top section
+    {x:3, y:2, w:3, h:1}, {x:8, y:2, w:4, h:1},
+    {x:3, y:4, w:1, h:3}, {x:6, y:3, w:1, h:2},
+    {x:10, y:3, w:1, h:3}, {x:13, y:2, w:1, h:3},
+    // Middle
+    {x:2, y:6, w:4, h:1}, {x:7, y:5, w:3, h:1},
+    {x:11, y:6, w:4, h:1},
+    // Bottom
+    {x:3, y:8, w:3, h:1}, {x:8, y:9, w:4, h:1},
+    {x:13, y:8, w:1, h:3}, {x:5, y:10, w:1, h:1},
+  ];
+
+  for (const b of wallBlocks) {
+    for (let dx = 0; dx < b.w; dx++)
+      for (let dy = 0; dy < b.h; dy++)
+        addWall(b.x + dx, b.y + dy);
+  }
+
+  // Bushes (hiding spots)
+  const bushSpots = [
+    {x:2,y:2},{x:4,y:5},{x:7,y:7},{x:11,y:4},{x:14,y:5},
+    {x:6,y:9},{x:9,y:6},{x:12,y:10},{x:2,y:9},{x:14,y:9}
+  ];
+
+  for (const b of bushSpots) {
+    if (!occupied.has(`${b.x},${b.y}`)) {
+      bushes.push({x:b.x, y:b.y});
+    }
+  }
+
+  return { walls, bushes };
+}
+
+function isWall(x, y) {
+  return gameState.walls.some(w => w.x === x && w.y === y);
+}
+
+function isBush(x, y) {
+  return gameState.bushes.some(b => b.x === x && b.y === y);
+}
+
+function safePos(x, y) {
+  // make sure not in wall
+  if (!isWall(x, y)) return {x, y};
+  return {x: 2, y: 2};
+}
+
+// ============================
+// ROLE SELECTION
+// ============================
+function selectRole(role) {
+  gameState.currentPlayer = role;
+  gameState.roles = { player1: role, player2: role === 'hider' ? 'monster' : 'hider' };
+  const { walls, bushes } = generateMap();
+  gameState.walls = walls;
+  gameState.bushes = bushes;
+  gameState.hider = { x: 2, y: 2 };
+  gameState.monster = { x: COLS-3, y: ROWS-3 };
+  gameState.caught = false;
+  gameState.winner = null;
+  gameState.timeLeft = 60;
+
+  startHidingPhase();
+}
+
+// ============================
+// PHASES
+// ============================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function startHidingPhase() {
+  // Always hider goes first
+  showScreen('phase-screen');
+  document.getElementById('phase-title').textContent = '🫣 Hider\'s Turn!';
+  document.getElementById('phase-desc').textContent = 'Hand device to the Hider. You have 15 seconds to hide!';
+  document.getElementById('countdown-num').textContent = '3';
+
+  let c = 3;
+  clearInterval(gameState.countdownInterval);
+  gameState.countdownInterval = setInterval(() => {
+    c--;
+    document.getElementById('countdown-num').textContent = c;
+    if (c <= 0) {
+      clearInterval(gameState.countdownInterval);
+      startGame('hider');
+    }
+  }, 1000);
+}
+
+function startGame(forPlayer) {
+  gameState.phase = forPlayer === 'hider' ? 'hiding' : 'hunting';
+  gameState.currentPlayer = forPlayer;
+
+  setupCanvas();
+  showScreen('game-screen');
+
+  const roleEl = document.getElementById('hud-role');
+  roleEl.textContent = forPlayer === 'hider' ? '🫣 Hider' : '👹 Monster';
+  roleEl.className = 'hud-val ' + (forPlayer === 'hider' ? 'role-hider' : 'role-monster');
+
+  document.getElementById('hud-phase').textContent = forPlayer === 'hider' ? 'Hiding' : 'Hunting';
+  document.getElementById('game-instructions').textContent = 'Use WASD or Arrow Keys to move';
+
+  if (forPlayer === 'hider') {
+    // 15 seconds to hide
+    gameState.timeLeft = 15;
+    document.getElementById('hud-timer').textContent = 15;
+    document.getElementById('hud-phase').textContent = 'Hiding (15s)';
+
+    clearInterval(gameState.timerInterval);
+    gameState.timerInterval = setInterval(() => {
+      gameState.timeLeft--;
+      document.getElementById('hud-timer').textContent = gameState.timeLeft;
+      if (gameState.timeLeft <= 0) {
+        clearInterval(gameState.timerInterval);
+        switchToMonster();
+      }
+    }, 1000);
+  } else {
+    // 60 seconds for monster to hunt
+    gameState.timeLeft = 60;
+    document.getElementById('hud-timer').textContent = 60;
+
+    clearInterval(gameState.timerInterval);
+    gameState.timerInterval = setInterval(() => {
+      gameState.timeLeft--;
+      document.getElementById('hud-timer').textContent = gameState.timeLeft;
+      if (gameState.timeLeft <= 0) {
+        clearInterval(gameState.timerInterval);
+        endGame('hider');
+      }
+    }, 1000);
+  }
+
+  render();
+}
+
+function switchToMonster() {
+  clearInterval(gameState.timerInterval);
+  showScreen('phase-screen');
+  document.getElementById('phase-title').textContent = '👹 Monster\'s Turn!';
+  document.getElementById('phase-desc').textContent = 'Hand device to the Monster. Hunt down the hider!';
+  document.getElementById('countdown-num').textContent = '3';
+
+  let c = 3;
+  clearInterval(gameState.countdownInterval);
+  gameState.countdownInterval = setInterval(() => {
+    c--;
+    document.getElementById('countdown-num').textContent = c;
+    if (c <= 0) {
+      clearInterval(gameState.countdownInterval);
+      startGame('monster');
+    }
+  }, 1000);
+}
+
+// ============================
+// CANVAS
+// ============================
+let gameCanvas, fogCanvas, ctx, fctx;
+
+function setupCanvas() {
+  gameCanvas = document.getElementById('game-canvas');
+  fogCanvas = document.getElementById('fog-canvas');
+  gameCanvas.width = fogCanvas.width = W;
+  gameCanvas.height = fogCanvas.height = H;
+  ctx = gameCanvas.getContext('2d');
+  fctx = fogCanvas.getContext('2d');
+}
+
+// Color palette
+const COLORS = {
+  floor: '#141420',
+  floorAlt: '#161624',
+  wall: '#2a1a3a',
+  wallTop: '#3d2a55',
+  bush: '#1a3a1a',
+  bushTop: '#2a5c2a',
+  hider: '#27ae60',
+  hiderGlow: '#44ff88',
+  monster: '#c0392b',
+  monsterGlow: '#ff4444',
+};
+
+function render() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, W, H);
+
+  // Floor
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? COLORS.floor : COLORS.floorAlt;
+      ctx.fillRect(x*CELL, y*CELL, CELL, CELL);
+    }
+  }
+
+  // Bushes
+  for (const b of gameState.bushes) {
+    ctx.fillStyle = COLORS.bush;
+    ctx.fillRect(b.x*CELL+4, b.y*CELL+4, CELL-8, CELL-8);
+    ctx.fillStyle = COLORS.bushTop;
+    ctx.fillRect(b.x*CELL+8, b.y*CELL+8, CELL-16, CELL-16);
+    // bush icon
+    ctx.font = `${CELL-8}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🌿', b.x*CELL + CELL/2, b.y*CELL + CELL/2);
+  }
+
+  // Walls
+  for (const w of gameState.walls) {
+    ctx.fillStyle = COLORS.wall;
+    ctx.fillRect(w.x*CELL, w.y*CELL, CELL, CELL);
+    ctx.fillStyle = COLORS.wallTop;
+    ctx.fillRect(w.x*CELL+2, w.y*CELL+2, CELL-4, 6);
+  }
+
+  const phase = gameState.phase;
+  const cp = gameState.currentPlayer;
+  const h = gameState.hider, m = gameState.monster;
+
+  // When monster plays, show hider only if adjacent (caught)
+  const showHider = cp === 'hider' || gameState.caught || (cp === 'monster');
+
+  // Draw hider
+  if (showHider) {
+    const hiddenInBush = isBush(h.x, h.y);
+    if (cp === 'monster' && hiddenInBush && !adjacent(h, m, 2)) {
+      // Hidden, don't show
+    } else {
+      // Glow
+      const grad = ctx.createRadialGradient(h.x*CELL+CELL/2, h.y*CELL+CELL/2, 0, h.x*CELL+CELL/2, h.y*CELL+CELL/2, CELL);
+      grad.addColorStop(0, 'rgba(68,255,136,0.3)');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect((h.x-1)*CELL, (h.y-1)*CELL, CELL*3, CELL*3);
+
+      ctx.font = `${CELL-6}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(hiddenInBush ? '🌿' : '🧑', h.x*CELL+CELL/2, h.y*CELL+CELL/2);
+      if (!hiddenInBush || cp === 'hider') {
+        ctx.font = `${CELL-14}px serif`;
+        ctx.fillText('🫣', h.x*CELL+CELL/2+12, h.y*CELL+CELL/2-12);
+      }
+    }
+  }
+
+  // Draw monster
+  {
+    const grad = ctx.createRadialGradient(m.x*CELL+CELL/2, m.y*CELL+CELL/2, 0, m.x*CELL+CELL/2, m.y*CELL+CELL/2, CELL*1.5);
+    grad.addColorStop(0, 'rgba(255,68,68,0.25)');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect((m.x-1)*CELL, (m.y-1)*CELL, CELL*3, CELL*3);
+
+    ctx.font = `${CELL-4}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('👹', m.x*CELL+CELL/2, m.y*CELL+CELL/2);
+  }
+
+  // FOG OF WAR for monster (limits vision)
+  if (cp === 'monster') {
+    drawFog(m.x, m.y);
+  } else {
+    fctx.clearRect(0, 0, W, H);
+  }
+
+  // Check collision
+  if (cp === 'monster' && h.x === m.x && h.y === m.y) {
+    clearInterval(gameState.timerInterval);
+    endGame('monster');
+    return;
+  }
+  if (cp === 'monster' && adjacent(h, m, 1)) {
+    // caught if adjacent?
+    // Only caught if same cell
+  }
+
+  if (!gameState.caught) {
+    requestAnimationFrame(render);
+  }
+}
+
+function adjacent(a, b, dist) {
+  return Math.abs(a.x - b.x) <= dist && Math.abs(a.y - b.y) <= dist;
+}
+
+function drawFog(cx, cy) {
+  fctx.clearRect(0, 0, W, H);
+  fctx.fillStyle = 'rgba(0,0,0,0.88)';
+  fctx.fillRect(0, 0, W, H);
+
+  const vr = 3.5; // vision radius in cells
+  const px = cx*CELL + CELL/2;
+  const py = cy*CELL + CELL/2;
+
+  const grad = fctx.createRadialGradient(px, py, 0, px, py, vr*CELL);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(0.7, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.88)');
+
+  fctx.globalCompositeOperation = 'destination-out';
+  fctx.fillStyle = grad;
+  fctx.beginPath();
+  fctx.arc(px, py, vr*CELL, 0, Math.PI*2);
+  fctx.fill();
+  fctx.globalCompositeOperation = 'source-over';
+}
+
+// ============================
+// INPUT
+// ============================
+document.addEventListener('keydown', (e) => {
+  if (!['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','W','A','S','D'].includes(e.key)) return;
+  if (gameState.phase === 'over') return;
+  e.preventDefault();
+
+  const cp = gameState.currentPlayer;
+  if (!cp) return;
+
+  let dx = 0, dy = 0;
+  if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') dy = -1;
+  if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') dy = 1;
+  if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') dx = -1;
+  if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') dx = 1;
+
+  const pos = cp === 'hider' ? gameState.hider : gameState.monster;
+  const nx = pos.x + dx;
+  const ny = pos.y + dy;
+
+  if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && !isWall(nx, ny)) {
+    pos.x = nx;
+    pos.y = ny;
+  }
+
+  // Check if monster caught hider
+  if (cp === 'monster' && gameState.monster.x === gameState.hider.x && gameState.monster.y === gameState.hider.y) {
+    clearInterval(gameState.timerInterval);
+    endGame('monster');
+  }
+});
+
+// Touch controls
+let touchStartX, touchStartY;
+document.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, {passive: true});
+
+document.addEventListener('touchend', e => {
+  if (gameState.phase === 'over' || !gameState.currentPlayer) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+
+  if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+
+  let mx = 0, my = 0;
+  if (Math.abs(dx) > Math.abs(dy)) mx = dx > 0 ? 1 : -1;
+  else my = dy > 0 ? 1 : -1;
+
+  const cp = gameState.currentPlayer;
+  const pos = cp === 'hider' ? gameState.hider : gameState.monster;
+  const nx = pos.x + mx, ny = pos.y + my;
+  if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS && !isWall(nx, ny)) {
+    pos.x = nx; pos.y = ny;
+  }
+  if (cp === 'monster' && gameState.monster.x === gameState.hider.x && gameState.monster.y === gameState.hider.y) {
+    clearInterval(gameState.timerInterval);
+    endGame('monster');
+  }
+}, {passive: true});
+
+// ============================
+// END GAME
+// ============================
+function endGame(winner) {
+  gameState.phase = 'over';
+  gameState.winner = winner;
+  gameState.caught = winner === 'monster';
+
+  // Final render showing both
+  const cp = gameState.currentPlayer;
+  setTimeout(() => {
+    const overlay = document.getElementById('result-overlay');
+    overlay.classList.remove('hidden');
+
+    const icon = document.getElementById('result-icon');
+    const title = document.getElementById('result-title');
+    const sub = document.getElementById('result-sub');
+
+    if (winner === 'hider') {
+      icon.textContent = '🎉';
+      title.textContent = 'Hider Wins!';
+      title.className = 'overlay-title win';
+      sub.textContent = 'The monster couldn\'t find you — you escaped into the night!';
+    } else {
+      icon.textContent = '💀';
+      title.textContent = 'Monster Wins!';
+      title.className = 'overlay-title lose';
+      sub.textContent = 'The hider has been caught! Nom nom...';
+    }
+  }, 100);
+}
+
+function quitGame() {
+  clearInterval(gameState.timerInterval);
+  clearInterval(gameState.countdownInterval);
+  resetGame();
+}
+
+function resetGame() {
+  clearInterval(gameState.timerInterval);
+  clearInterval(gameState.countdownInterval);
+  gameState.phase = 'select';
+  gameState.caught = false;
+  document.getElementById('result-overlay').classList.add('hidden');
+  showScreen('select-screen');
+}
+</script>
+</body>
+</html>
