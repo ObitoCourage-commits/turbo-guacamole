@@ -135,25 +135,24 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;display:flex;ali
 .feat-name{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:3px;color:var(--bright);text-transform:uppercase;margin-bottom:10px}
 .feat-desc{font-size:13px;color:var(--dim);line-height:1.75}
 
-/* ── SUGGESTION BOX ─────────────────────────────────────── */
-#suggest{position:relative;z-index:10;padding:80px 48px 100px}
-.suggest-inner{max-width:700px;margin:0 auto;text-align:center}
-.suggest-box{background:var(--panel);border:1px solid var(--border2);padding:44px 48px;position:relative;overflow:hidden;margin-top:40px}
-.suggest-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple),var(--cyan),transparent)}
-.suggest-box::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
-.suggest-area{width:100%;background:rgba(0,0,0,0.35);border:1px solid var(--border2);color:var(--text);font-family:'Exo 2',sans-serif;font-size:14px;line-height:1.7;padding:16px 20px;resize:vertical;min-height:110px;outline:none;transition:border-color 0.2s;margin-bottom:6px}
-.suggest-area::placeholder{color:var(--dim)}
-.suggest-area:focus{border-color:var(--cyan)}
-.suggest-char{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--dim);text-align:right;margin-bottom:16px;display:block}
-.suggest-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:20px}
-.suggest-submit{font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:3px;padding:13px 32px;background:var(--purple);color:#fff;border:none;cursor:pointer;clip-path:polygon(9px 0%,100% 0%,calc(100% - 9px) 100%,0% 100%);transition:all 0.2s}
-.suggest-submit:hover{background:#d94fff;transform:translateY(-2px);box-shadow:0 8px 28px rgba(204,68,255,0.35)}
-.suggest-type{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
-.stype-btn{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;padding:6px 14px;background:transparent;border:1px solid var(--border2);color:var(--dim);cursor:pointer;text-transform:uppercase;transition:all 0.2s;clip-path:polygon(4px 0%,100% 0%,calc(100% - 4px) 100%,0% 100%)}
-.stype-btn:hover,.stype-btn.active{border-color:var(--purple);color:var(--purple);background:rgba(204,68,255,0.08)}
-.suggest-toast{display:none;align-items:center;gap:10px;padding:14px 20px;border:1px solid rgba(0,255,136,0.3);background:rgba(0,255,136,0.06);margin-top:16px;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--green)}
-.suggest-toast.show{display:flex;animation:riseUp 0.4s ease forwards}
-.toast-icon{font-size:18px}
+/* ── COMMUNITY SECTION ───────────────────────────────────── */
+#community{position:relative;z-index:10;padding:80px 48px 100px}
+.community-inner{max-width:700px;margin:0 auto;text-align:center}
+.community-box{background:var(--panel);border:1px solid var(--border2);padding:52px 48px;position:relative;overflow:hidden;margin-top:40px}
+.community-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#229ed9,var(--cyan),transparent)}
+.community-box::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent)}
+.community-icon{font-size:52px;margin-bottom:20px;filter:drop-shadow(0 0 24px rgba(0,229,255,0.3))}
+.community-desc{font-size:14px;line-height:1.85;color:var(--dim);margin-bottom:12px}
+.community-desc strong{color:var(--text)}
+.community-perks{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;margin:28px 0 36px}
+.community-perk{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.perk-dot{width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
+.tg-btn{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:4px;padding:18px 48px;background:#229ed9;color:#fff;border:none;cursor:pointer;text-decoration:none;clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0% 100%);transition:all 0.2s;display:inline-flex;align-items:center;gap:12px}
+.tg-btn:hover{background:#1a8abf;transform:translateY(-3px);box-shadow:0 12px 40px rgba(34,158,217,0.35)}
+.tg-btn-icon{font-size:20px}
+.tg-handle{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--dim);margin-top:18px;text-transform:uppercase}
+.tg-handle a{color:#229ed9;text-decoration:none;transition:color 0.2s}
+.tg-handle a:hover{color:var(--cyan)}
 
 footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px}
 .foot-logo{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;letter-spacing:5px;color:var(--gold)}
@@ -175,7 +174,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
   <ul class="nav-links">
     <li><a href="#games">Games</a></li>
     <li><a href="#features">Features</a></li>
-    <li><a href="#suggest">Suggest</a></li>
+    <li><a href="#community">Community</a></li>
   </ul>
   <div class="nav-live"><div class="live-dot"></div>15 GAMES LIVE</div>
 </nav>
@@ -448,17 +447,17 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       </div>
     </a>
 
-    <a class="game-card" data-id="poppy" data-name="Poppy Playtime Chapter 1" data-added="14" data-genre="horror" href="poppy-playtime.html">
+    <a class="game-card" data-id="poppy" data-name="Poppy Playtime Chapter 1-5" data-added="14" data-genre="horror" href="poppy-playtime.html">
       <div class="card-art" data-id="poppy">
         <div class="art-grid"></div>
         <div class="art-icon">🧸</div>
-        <div class="art-badge">HORROR</div>
+        <div class="art-badge badge-new">UPDATED</div>
         <div class="art-players">🎮 Single Player</div>
       </div>
       <div class="card-body">
         <div class="card-genre">Horror Puzzle</div>
-        <div class="card-name">POPPY PLAYTIME — CHAPTER 1</div>
-        <div class="card-desc">Welcome back to Playtime Co. The factory has been silent for years — until now. Solve puzzles, dodge Huggy Wuggy, and uncover the dark secret buried deep inside the abandoned toy factory.</div>
+        <div class="card-name">POPPY PLAYTIME — CHAPTER 1-5</div>
+        <div class="card-desc">The full Playtime Co. experience. All chapters in one place — from Huggy Wuggy's factory to the horrors that followed. Uncover the dark truth buried deep inside the abandoned toy factory.</div>
         <div class="card-tags"><span class="tag">Horror</span><span class="tag">Puzzle</span><span class="tag">Stealth</span><span class="tag">Story</span></div>
         <div class="card-footer"><span class="card-play">▶ Play Now</span><span class="card-stars">★★★★★</span></div>
       </div>
@@ -499,32 +498,29 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
   </div>
 </section>
 
-<!-- ── SUGGESTION BOX ──────────────────────────────────── -->
-<section id="suggest">
-  <div class="suggest-inner">
+<!-- ── COMMUNITY SECTION ─────────────────────────────────── -->
+<section id="community">
+  <div class="community-inner">
     <div class="section-label">Community</div>
-    <h2 class="section-h2">GOT A <span class="gold">SUGGESTION?</span></h2>
+    <h2 class="section-h2">JOIN THE <span class="gold">CHAT</span></h2>
     <div class="section-rule"></div>
 
-    <div class="suggest-box">
-      <div class="suggest-type">
-        <button class="stype-btn active" onclick="setType(this,'🎮 New Game')">🎮 New Game</button>
-        <button class="stype-btn" onclick="setType(this,'🐛 Bug Report')">🐛 Bug Report</button>
-        <button class="stype-btn" onclick="setType(this,'✨ Feature Request')">✨ Feature</button>
-        <button class="stype-btn" onclick="setType(this,'💬 General')">💬 General</button>
+    <div class="community-box">
+      <div class="community-icon">✈️</div>
+      <p class="community-desc">
+        Got a comment, suggestion, or just want to talk games?<br>
+        <strong>Join the NXS Arcade Telegram channel</strong> — drop a message, see what others are saying, and stay updated on new games.
+      </p>
+      <div class="community-perks">
+        <div class="community-perk"><div class="perk-dot"></div>Suggest new games</div>
+        <div class="community-perk"><div class="perk-dot"></div>Report bugs</div>
+        <div class="community-perk"><div class="perk-dot"></div>Talk to the community</div>
+        <div class="community-perk"><div class="perk-dot"></div>Get notified on new drops</div>
       </div>
-
-      <textarea class="suggest-area" id="suggest-text" maxlength="500" placeholder="Type your suggestion here… e.g. 'Add Minecraft!' or 'The Skyrim map needs a minimap'" oninput="updateChar()"></textarea>
-      <span class="suggest-char" id="suggest-char">0 / 500</span>
-
-      <div class="suggest-btns">
-        <button class="suggest-submit" onclick="submitSuggestion()">▶ SEND IT</button>
-      </div>
-
-      <div class="suggest-toast" id="suggest-toast">
-        <span class="toast-icon">✅</span>
-        <span id="toast-msg">Suggestion received. The crew will review it.</span>
-      </div>
+      <a class="tg-btn" href="https://t.me/nxsarcade" target="_blank" rel="noopener">
+        <span class="tg-btn-icon">✈️</span> OPEN IN TELEGRAM
+      </a>
+      <div class="tg-handle">Channel: <a href="https://t.me/nxsarcade" target="_blank">@nxsarcade</a></div>
     </div>
   </div>
 </section>
@@ -534,7 +530,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
   <div class="foot-links">
     <a href="#games">Games</a>
     <a href="#features">Features</a>
-    <a href="#suggest">Suggest</a>
+    <a href="#community">Community</a>
     <a href="r6siege.html">R6 Siege</a>
     <a href="dead_sector.html">Dead Sector II</a>
     <a href="abandoned_mansion.html">Abandoned Mansion</a>
@@ -548,7 +544,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <a href="farcry-game.html">Far Cry: Outpost</a>
     <a href="stalker-rpg.html">S.T.A.L.K.E.R.</a>
     <a href="fallout4-rpg.html">Fallout 4</a>
-    <a href="poppy-playtime.html">Poppy Playtime</a>
+    <a href="poppy-playtime.html">Poppy Playtime Ch.1-5</a>
     <a href="minecraft2d.html">2D Minecraft</a>
   </div>
   <div class="foot-copy">Free · Browser-Based · No Downloads <a href="admin.html" class="foot-owner-link" title="">⬡</a></div>
@@ -645,32 +641,7 @@ function applyFilters() {
   }, 180);
 }
 
-// ── SUGGESTION BOX ────────────────────────────────────────
-let activeType = '🎮 New Game';
-function setType(btn, type) {
-  document.querySelectorAll('.stype-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  activeType = type;
-}
-function updateChar() {
-  const v = document.getElementById('suggest-text').value.length;
-  document.getElementById('suggest-char').textContent = v + ' / 500';
-}
-function submitSuggestion() {
-  const text = document.getElementById('suggest-text').value.trim();
-  if (!text) { document.getElementById('suggest-text').focus(); return; }
-  // Store locally
-  const suggestions = JSON.parse(localStorage.getItem('nxs_suggestions') || '[]');
-  suggestions.push({ type: activeType, text, ts: Date.now() });
-  localStorage.setItem('nxs_suggestions', JSON.stringify(suggestions));
-  // Show toast
-  document.getElementById('toast-msg').textContent = `[${activeType}] Received! Thanks for the feedback.`;
-  const toast = document.getElementById('suggest-toast');
-  toast.classList.add('show');
-  document.getElementById('suggest-text').value = '';
-  updateChar();
-  setTimeout(() => toast.classList.remove('show'), 4000);
-}
+// ── END ───────────────────────────────────────────────────
 </script>
 </body>
 </html>
