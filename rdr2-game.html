@@ -446,6 +446,7 @@ body::before{
         <div class="panel-title" style="padding:0 0 8px;border:none;margin-bottom:8px">▸ Camp</div>
         <div style="font-size:13px;color:var(--dim);line-height:1.7" id="camp-status">
           Dutch is planning something big.<br>
+          Micah Bell watches from the shadows.<br>
           The gang is restless tonight.
         </div>
       </div>
@@ -474,6 +475,7 @@ const SCENES = {
     choices: [
       { text: 'Ride out to rob the Flaco gang stagecoach', next: 'stagecoach_approach', stamina: -10 },
       { text: 'Talk to Dutch about the next job', next: 'dutch_talk' },
+      { text: 'Investigate what Micah Bell is up to', next: 'micah_intro' },
       { text: 'Head into Valentine for supplies', next: 'valentine_town', money: -2 },
       { text: 'Go hunting in the Heartlands', next: 'hunting', stamina: -15 },
       { text: 'Rest at camp and tend your wounds', next: 'rest', health: 20, stamina: 20 },
@@ -1001,6 +1003,463 @@ const SCENES = {
     health: 30, stamina: 30,
     choices: [
       { text: 'Back to it', next: 'camp_night' },
+      { text: 'Check on what Micah\'s been up to', next: 'micah_intro' },
+    ]
+  },
+
+  // ── MICAH ARC ── Following original RDR2 story ────────────
+
+  micah_intro: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Morning · 1899',
+    sprite: '🤠',
+    narrative: `Micah Bell is sharpening a knife near the supply wagon, watching everyone with those pale, flat eyes. He's been with the gang only a short while — came in from Blackwater — and already half the camp can't stand him.\n\nHe looks up at you and grins. That grin never reaches his eyes.\n\n"Sleeping beauty wakes up. Dutch wants to talk to you about a job. Something I found down in Strawberry — real opportunity." He says *I found* like it's a gift.`,
+    choices: [
+      { text: '"What kind of job, Micah?"', next: 'micah_strawberry_pitch' },
+      { text: 'Walk past him without a word', next: 'micah_ignored', honor: 5 },
+      { text: '"I don\'t trust anything you find, Micah."', next: 'micah_confronted', honor: 10 },
+    ]
+  },
+
+  micah_ignored: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Morning · 1899',
+    sprite: '🤠',
+    narrative: `Micah calls after you, voice dripping with mock hurt.\n\n"That ain't friendly, Arthur. We're gang, you and me. Same side."\n\nYou don't look back. John Marston falls into step beside you, voice low.\n\n"Don't trust that man as far as I could throw him. Something ain't right about Micah Bell."`,
+    honor: 5,
+    choices: [
+      { text: '"You and me both, John."', next: 'micah_strawberry_pitch' },
+      { text: 'Head back to camp business', next: 'camp_night' },
+    ]
+  },
+
+  micah_confronted: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Morning · 1899',
+    sprite: '🤠',
+    narrative: `Micah's grin hardens at the edges. He stands slowly, knife still in hand.\n\n"Careful, Morgan. Dutch trusts me. Might want to remember that."\n\n"Dutch trusts everybody," you say. "That's his problem."\n\nFor a moment something cold flashes in his eyes. Then the grin comes back, slick as oil.\n\n"Ha. You're funny. Go talk to Dutch."`,
+    honor: 10,
+    choices: [
+      { text: 'Go hear what Dutch has to say', next: 'micah_strawberry_pitch' },
+      { text: 'Keep an eye on Micah — something is wrong', next: 'micah_suspicion' },
+    ]
+  },
+
+  micah_suspicion: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Afternoon · 1899',
+    sprite: '🤠',
+    narrative: `You watch Micah through the afternoon. He slips away from camp twice — south, toward the road. No explanation to anyone.\n\nWhen he returns the second time, you notice his boots are different. Cleaner than they should be for a man who claims he's been scouting trails.\n\nYou mention it to Hosea that evening. The old man just stares into the fire.\n\n"Some men are wolves dressed as dogs, Arthur. The trick is knowing before they bite."`,
+    honor: 10,
+    choices: [
+      { text: 'Follow Micah next time he leaves camp', next: 'follow_micah', stamina: -15 },
+      { text: 'Bring your concern to Dutch', next: 'warn_dutch_early' },
+      { text: 'Leave it for now — no proof yet', next: 'micah_strawberry_pitch' },
+    ]
+  },
+
+  follow_micah: {
+    location: 'Lemoyne · South Road',
+    time: 'Dusk · 1899',
+    sprite: '🤠',
+    narrative: `You tail Micah a mile south of camp, staying in the tree line. He rides to a rocky outcrop — and meets a man in a dark suit.\n\nYou can't hear the words at this distance. But you see Micah hand something over. Papers, maybe. The suited man nods and rides east.\n\nMicah sits alone for a while, then heads back to camp whistling.`,
+    honor: 10,
+    choices: [
+      { text: 'Confront Micah directly — you saw what you saw', next: 'confront_micah_spy', honor: 5 },
+      { text: 'Tell Dutch what you witnessed', next: 'warn_dutch_early', honor: 5 },
+      { text: 'Say nothing — keep watching and gathering proof', next: 'micah_strawberry_pitch', honor: 5 },
+    ]
+  },
+
+  confront_micah_spy: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `You corner Micah near the horse pen. He doesn't even blink.\n\n"You following me now, Morgan? That's a little desperate."\n\n"Who was that man on the south road?"\n\nMicah smiles — that same dead smile. "A horse trader. Relax." He brushes past you.\n\nYou grab his arm. He looks down at your hand, then up at you. "You really want to do this? Dutch won't like hearing you've gone paranoid."`,
+    choices: [
+      { text: 'Let him go — you need more proof', next: 'micah_strawberry_pitch', honor: 5 },
+      { text: 'Throw a punch — make him talk', next: 'micah_fistfight', honor: -5, health: -15 },
+    ]
+  },
+
+  micah_fistfight: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Night · 1899',
+    sprite: '😤',
+    narrative: `The fight draws the whole camp. Micah is dirty and fast — he fights like a man with nothing to lose. You take a hit to the jaw before you put him on the ground.\n\nDutch pulls you apart, furious.\n\n"What in God's name is wrong with you two?! We are a FAMILY!"\n\nMicah spits blood and grins up at you from the dirt. "He started it, Dutch. Morgan's losing his mind."`,
+    health: -15, honor: -10,
+    choices: [
+      { text: '"He\'s meeting men on the south road, Dutch. Handing things over."', next: 'warn_dutch_early' },
+      { text: 'Walk away — Dutch won\'t hear it right now', next: 'micah_strawberry_pitch' },
+    ]
+  },
+
+  warn_dutch_early: {
+    location: 'Horseshoe Overlook · Dutch\'s Tent',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `Dutch listens. You can see him weighing it — but also see him not wanting to hear it.\n\n"Arthur... Micah came to us in a bad spot. I trust him. He's proven himself." He puts a hand on your shoulder.\n\n"I know you two don't get along. But right now I need everyone working together. Can you do that for me?"\n\nIt's not an answer. It never is with Dutch anymore.`,
+    honor: 10,
+    choices: [
+      { text: '"Alright, Dutch. But I\'m watching him."', next: 'micah_strawberry_pitch' },
+      { text: '"You\'re making a mistake, Dutch."', next: 'micah_strawberry_pitch', honor: 5 },
+    ]
+  },
+
+  micah_strawberry_pitch: {
+    location: 'Horseshoe Overlook · Dutch\'s Tent',
+    time: 'Morning · 1899',
+    sprite: '🤠',
+    narrative: `Dutch lays out the plan: Micah spotted a O'Driscoll stagecoach running supplies near Strawberry. Hit it fast, take what they have, send a message to Colm O'Driscoll.\n\n"Micah will ride with you," Dutch says. There's no room for argument in his voice.\n\nMicah leans against the tent post, cleaning his nails with that knife. "Should be fun, Morgan. Don't slow me down."`,
+    choices: [
+      { text: 'Ride with Micah — do the job', next: 'strawberry_job', stamina: -15 },
+      { text: '"I work better alone, Dutch."', next: 'strawberry_alone', stamina: -15 },
+    ]
+  },
+
+  strawberry_alone: {
+    location: 'Strawberry Road · West Elizabeth',
+    time: 'Afternoon · 1899',
+    sprite: '🤠',
+    narrative: `Dutch reluctantly agrees — Micah watches you ride out with barely disguised contempt.\n\nYou hit the O'Driscoll coach solo. Clean, fast, professional. Three guards, two minutes, $60 in supplies and cash.\n\nWhen you return, Dutch nods approval. Micah says nothing — which is almost worse.`,
+    money: 60, kills: 3, honor: -10, wanted: 1,
+    choices: [
+      { text: 'Return to camp', next: 'camp_night' },
+      { text: 'Ask Dutch what Micah\'s been whispering about', next: 'micah_whispering' },
+    ]
+  },
+
+  strawberry_job: {
+    location: 'Strawberry Road · West Elizabeth',
+    time: 'Afternoon · 1899',
+    sprite: '😤',
+    narrative: `The ride out is tense — Micah talks the whole way. About himself, mostly. How fast he is. How Dutch relies on him. How the gang needed someone like him.\n\nYou say nothing. The O'Driscoll coach comes around the bend right on schedule.\n\nMicah's first shot kills a driver before the man even reaches for his gun. Unnecessary. You notice that.`,
+    choices: [
+      { text: 'Take your positions — do the job quick', next: 'strawberry_success', kills: 2, money: 55, honor: -15 },
+      { text: 'Tell Micah to hold — you\'ll talk them down', next: 'strawberry_peaceful', honor: 10 },
+    ]
+  },
+
+  strawberry_peaceful: {
+    location: 'Strawberry Road',
+    time: 'Afternoon · 1899',
+    sprite: '🤠',
+    narrative: `You ride out front, hand raised. The lead O'Driscoll driver pulls up, suspicious.\n\n"Hand over the cargo. Nobody needs to die today."\n\nBehind you, Micah makes a disgusted sound — but holds.\n\nThe driver looks at your gun, looks at Micah, and makes the smart choice. They ride off empty-handed, alive.\n\nMicah is furious the whole ride back. "Should've killed 'em. Now they can identify us."`,
+    money: 45, honor: 15,
+    choices: [
+      { text: '"They\'re alive. That\'s how I prefer it."', next: 'micah_argument', honor: 5 },
+      { text: 'Ignore Micah and ride back to camp', next: 'micah_whispering' },
+    ]
+  },
+
+  strawberry_success: {
+    location: 'Strawberry Road',
+    time: 'Afternoon · 1899',
+    sprite: '😤',
+    narrative: `Four O'Driscolls down. Cargo secured. Micah whoops like he's won a horse race.\n\n"Now THAT'S how you work! Dutch was right about you, Morgan — underneath all that frowning you're just like me."\n\n"I am nothing like you, Micah."\n\nHe just laughs and rides ahead. The worst part: Dutch is pleased when you report back.`,
+    kills: 4, money: 55, honor: -15, wanted: 1,
+    choices: [
+      { text: 'Report to Dutch', next: 'micah_whispering' },
+    ]
+  },
+
+  micah_argument: {
+    location: 'Heartlands Road · Riding',
+    time: 'Dusk · 1899',
+    sprite: '🤠',
+    narrative: `"You're soft, Morgan. Always have been. Dutch sees it too, he just won't say it."\n\n"Dutch built this gang on more than killing, Micah."\n\n"Dutch built this gang on SURVIVING. And survivors do what's necessary." He rides closer. "You better figure out which side you're on before it's too late."\n\nThe threat sits in the air between you all the way back to camp.`,
+    choices: [
+      { text: '"I know exactly which side I\'m on."', next: 'micah_whispering', honor: 10 },
+      { text: 'Let the threat go unanswered — for now', next: 'micah_whispering' },
+    ]
+  },
+
+  micah_whispering: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `That night you watch Micah bend close to Dutch's ear for a long time. Dutch nods slowly, eyes drifting to you across the fire.\n\nHosea appears beside you, quiet as smoke.\n\n"Whatever Micah's telling him — Dutch is listening. More than he listens to me these days." He pauses. "More than he listens to you."\n\nThe fire crackles. The gang's world is shifting, and you can feel the ground going soft under your feet.`,
+    choices: [
+      { text: 'Talk to John Marston about your suspicions', next: 'john_conversation', honor: 5 },
+      { text: 'Confront Dutch directly — demand to know what Micah said', next: 'dutch_confrontation' },
+      { text: 'Ride out — you need air and distance', next: 'camp_night' },
+    ]
+  },
+
+  john_conversation: {
+    location: 'Horseshoe Overlook · Treeline',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `John Marston listens with his arms folded, jaw set.\n\n"Arthur... I've been thinking about getting out. Abigail wants it. Jack needs a real life." He looks back at camp. "But Dutch will never let us go peacefully. Not now, with Micah in his ear."\n\n"Micah's poison," you say.\n\n"Yeah. And Dutch is drinking it." John meets your eyes. "What are we gonna do about it?"`,
+    honor: 10,
+    choices: [
+      { text: '"We find proof. Something undeniable."', next: 'find_proof', honor: 5 },
+      { text: '"We get you and your family out first. Then deal with Micah."', next: 'protect_john', honor: 15 },
+      { text: '"I don\'t know yet. But we\'ll figure it out."', next: 'camp_night' },
+    ]
+  },
+
+  protect_john: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Dawn · 1899',
+    sprite: '🤠',
+    narrative: `You start quietly setting money aside — your own earnings, tucked in your saddlebag. Enough to set John and Abigail and little Jack up somewhere far from here.\n\nAbigail catches you at it one morning. She doesn't say anything for a long moment.\n\n"You're a good man, Arthur Morgan. Whatever anyone says."`,
+    honor: 20, money: -20,
+    choices: [
+      { text: 'Keep building the plan', next: 'find_proof' },
+      { text: 'Focus on stopping Micah first', next: 'find_proof' },
+    ]
+  },
+
+  find_proof: {
+    location: 'Lemoyne · South Road',
+    time: 'Dawn · 1899',
+    sprite: '🤠',
+    narrative: `You ride the south road before sunup, looking for the place Micah met that suited man. You find it — a rocky hollow with boot prints, horse tracks heading east.\n\nAnd something else: a crumpled Pinkerton letterhead, half-buried in the dirt. Mostly unreadable. But one word stands out, circled in pencil:\n\n*"Morgan"*\n\nYour name. On a Pinkerton document. In a hollow where Micah Bell meets strangers.`,
+    honor: 10,
+    choices: [
+      { text: 'Take it straight to Dutch — NOW', next: 'dutch_confrontation', honor: 5 },
+      { text: 'Show it to Hosea first', next: 'hosea_proof' },
+      { text: 'Confront Micah with the evidence', next: 'micah_evidence' },
+    ]
+  },
+
+  hosea_proof: {
+    location: 'Horseshoe Overlook · Hosea\'s Wagon',
+    time: 'Morning · 1899',
+    sprite: '🤠',
+    narrative: `Hosea Matthews studies the paper for a long time. His face doesn't change — that old con man's face that never gives anything away.\n\n"This is bad, Arthur. Very bad."\n\n"Tell me something I don't know."\n\n"What I mean is — Dutch won't believe it. Not from you. Not about Micah." He folds the paper carefully. "Dutch needs to discover it himself. Or it needs to come from someone he can't dismiss." He looks at you with sad, wise eyes. "I'll try. But you be ready for what comes next."`,
+    honor: 10,
+    choices: [
+      { text: 'Trust Hosea to handle it', next: 'hosea_tries', honor: 5 },
+      { text: 'Go to Dutch yourself — this can\'t wait', next: 'dutch_confrontation' },
+    ]
+  },
+
+  hosea_tries: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Afternoon · 1899',
+    sprite: '🤠',
+    narrative: `You watch from across camp as Hosea pulls Dutch aside. The conversation is long. Dutch's face goes through several things — doubt, anger, confusion.\n\nThen Micah appears from nowhere and inserts himself. You can't hear the words. But you watch Dutch's posture change — watched and hardened — and Hosea back away.\n\nLater, Hosea finds you alone. "He didn't believe me. Micah has him completely. Arthur... I think we're running out of time."`,
+    honor: 5,
+    choices: [
+      { text: 'Make your move — confront Dutch with everything', next: 'dutch_confrontation' },
+      { text: 'Focus on getting the gang\'s innocent members out safe', next: 'protect_john' },
+    ]
+  },
+
+  micah_evidence: {
+    location: 'Horseshoe Overlook · Horse Pen',
+    time: 'Night · 1899',
+    sprite: '😤',
+    narrative: `You find Micah alone and shove the paper into his chest. He looks at it. His expression doesn't change — not even a flicker of guilt.\n\n"Where'd you find this?" His voice is very quiet.\n\n"You know where."\n\nA long silence. Then: "You got no idea what's really going on, Morgan. Dutch is going to get us all killed with his plans. Someone's got to be practical." He steps closer. "I'm looking out for myself. Same as you, if you were honest."`,
+    choices: [
+      { text: '"That\'s not the same. You\'re selling us to the Pinkertons."', next: 'micah_admits', honor: 10 },
+      { text: 'Draw on him — end it here', next: 'micah_duel_attempt', health: -30, honor: -20 },
+    ]
+  },
+
+  micah_admits: {
+    location: 'Horseshoe Overlook · Horse Pen',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `Micah smiles — and this time it's almost real. Almost relieved.\n\n"You're smarter than you look, Morgan. Yeah. I been talking to Milton. But I ain't sold nobody out. Yet." He leans in. "You come join me, Dutch doesn't have to know. We both walk away clean. New lives."\n\nYou stare at him for a long time.\n\n"No."`,
+    honor: 20,
+    choices: [
+      { text: 'Go to Dutch with everything — right now', next: 'dutch_confrontation' },
+      { text: 'Tell the gang — let everyone hear it', next: 'expose_micah', honor: 15 },
+    ]
+  },
+
+  micah_duel_attempt: {
+    location: 'Horseshoe Overlook · Horse Pen',
+    time: 'Night · 1899',
+    sprite: '😤',
+    narrative: `You draw. Micah draws faster than you expect — he catches your wrist, twists. The gun spins into the dirt.\n\nHe has you against the fence post, knife at your ribs.\n\n"Not yet, Morgan. Dutch needs us both right now." He releases you slowly. "But keep pushing and I will put you in the ground. Understand?"\n\nHe picks up your gun. Hands it back, barrel first, like a statement.`,
+    health: -30, honor: -20,
+    choices: [
+      { text: 'Bide your time — you\'ll get one more chance', next: 'dutch_confrontation' },
+      { text: 'Get Hosea and John — make a plan together', next: 'hosea_proof' },
+    ]
+  },
+
+  expose_micah: {
+    location: 'Horseshoe Overlook · Camp Fire',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `You call it out in front of everyone — Micah's meetings, the Pinkerton letter, the name on the paper.\n\nThe camp goes dead silent. Bill and Javier look at each other. Mary-Beth stops writing. John's hand moves toward his gun.\n\nMicah spreads his hands, all injured innocence. "He's lyin'. Morgan's always had it out for me."\n\nDutch steps forward slowly. His eyes go from you to Micah and back. The whole gang is watching him decide.`,
+    honor: 15,
+    choices: [
+      { text: 'Show Dutch the paper — put it in his hands', next: 'dutch_sees_proof' },
+      { text: '"Ask him to explain the meetings, Dutch. Ask him."', next: 'dutch_confrontation' },
+    ]
+  },
+
+  dutch_sees_proof: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `Dutch takes the paper. Reads it slowly.\n\nThe camp waits.\n\nMicah watches Dutch with those flat eyes — calculating, patient.\n\nDutch folds the paper. Hands it back to you. And you watch something die in his face — some last piece of the man he used to be.\n\n"It proves nothing," he says quietly. And walks away.\n\nHosea catches your eye. He shakes his head slowly. It's over. Whatever Dutch was — he's gone.`,
+    honor: 10,
+    choices: [
+      { text: 'Accept it — start planning the end', next: 'planning_the_end' },
+      { text: 'One last plea to Dutch', next: 'dutch_confrontation' },
+    ]
+  },
+
+  dutch_confrontation: {
+    location: 'Horseshoe Overlook · Dutch\'s Tent',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `Dutch sits with his back to you, staring at a map of some island. Tahiti. Always Tahiti.\n\n"Micah is an informant, Dutch. He's been meeting with Agent Milton. He's selling us out piece by piece and you're letting it happen."\n\nA long silence.\n\n"Arthur... I'm disappointed in you. Micah is loyal. You just can't see past your own jealousy." He turns finally. His eyes are something you don't recognize. "I need you to trust me. One last time."\n\nTrust. The most expensive currency in the West.`,
+    choices: [
+      { text: '"I trust you, Dutch." — One last time', next: 'blackwater_finale', honor: -10 },
+      { text: '"I can\'t. Not anymore."', next: 'planning_the_end', honor: 20 },
+      { text: '"Then get rid of Micah and I will."', next: 'dutch_refuses' },
+    ]
+  },
+
+  dutch_refuses: {
+    location: 'Dutch\'s Tent',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `Dutch's jaw tightens. "Micah stays. He's shown more faith in me than you have lately."\n\nYou stare at each other across the tent. Outside, Micah is whistling something low and tuneless near the fire.\n\n"Then we're done here, Dutch."\n\nYou walk out into the night. John is waiting in the shadows. He read your face before you spoke.\n\n"It's time, ain't it?"`,
+    honor: 20,
+    choices: [
+      { text: '"Yeah. It\'s time."', next: 'planning_the_end' },
+    ]
+  },
+
+  planning_the_end: {
+    location: 'Heartlands · Hidden Hollow',
+    time: 'Dawn · 1899',
+    sprite: '🤠',
+    narrative: `You, John, and Hosea meet away from camp as the sun comes up over the Heartlands.\n\nHosea lays it out calm and clear — one last job. Enough money to get everyone who wants out away clean. Then Arthur leads the distraction while John gets Abigail and Jack to safety.\n\n"And Micah?" John asks.\n\nYou and Hosea look at each other.\n\n"Micah gets what's coming to him," you say. "Eventually."`,
+    honor: 15,
+    choices: [
+      { text: 'Carry out the final plan', next: 'final_job', stamina: -20 },
+      { text: 'Make sure John\'s family gets out first', next: 'protect_john_final', honor: 20 },
+    ]
+  },
+
+  protect_john_final: {
+    location: 'Heartlands Road',
+    time: 'Dawn · 1899',
+    sprite: '🤠',
+    narrative: `You ride hard to find Abigail and Jack before Dutch's plan puts them in danger. Abigail doesn't ask questions — she's been packed and ready in her heart for months.\n\nYou put John's family on a horse heading north.\n\n"Go to Copperhead Landing," you tell them. "John will find you."\n\nAbigail looks at you. "Come with us, Arthur."\n\nYou shake your head. "Someone's got to hold the door."`,
+    honor: 25,
+    choices: [
+      { text: 'Go back and face what\'s coming', next: 'final_job' },
+    ]
+  },
+
+  final_job: {
+    location: 'Beaver Hollow · Gang Camp',
+    time: 'Dusk · 1899',
+    sprite: '😤',
+    narrative: `The gang has fractured. Half gone, scattered to the wind. Dutch stands in the middle of what's left — Micah at his right hand, as always.\n\nAgent Milton rides into camp. Not raiding — parleying. He looks at Micah with something that isn't quite surprise.\n\n"Dutch Van der Linde. It's over. Your man Bell has been feeding us information for months."\n\nThe whole camp goes still. Dutch looks at Micah.\n\nMicah smiles that smile. "Dutch. Dutch, don't listen to him—"\n\n"*Is it true?*"`,
+    choices: [
+      { text: 'Back Dutch up — see what he does', next: 'dutch_chooses' },
+      { text: 'Draw on Micah — right now, in front of everyone', next: 'draw_on_micah', health: -20 },
+      { text: 'Get the innocents out while there\'s chaos', next: 'escape_chaos', honor: 20 },
+    ]
+  },
+
+  dutch_chooses: {
+    location: 'Beaver Hollow',
+    time: 'Dusk · 1899',
+    sprite: '🤠',
+    narrative: `The silence stretches out like a held breath.\n\nThen Dutch Van der Linde — the man who taught you everything, the man you'd have died for a hundred times — turns away from Micah.\n\nAnd turns away from you.\n\n"I need... I need to think." He walks into the trees alone.\n\nMicah's eyes find yours. Cold. Calculating.\n\n"Just you and me now, Morgan."`,
+    choices: [
+      { text: 'Face Micah — the final confrontation', next: 'micah_final_duel' },
+      { text: 'Let Micah go — protect John instead', next: 'let_micah_go', honor: 15 },
+    ]
+  },
+
+  draw_on_micah: {
+    location: 'Beaver Hollow',
+    time: 'Dusk · 1899',
+    sprite: '😤',
+    narrative: `You draw on Micah Bell in front of what remains of the Van der Linde gang.\n\nMicah draws too — and Dutch steps between you.\n\n"ENOUGH!" Dutch's voice cracks like a rifle shot. "Arthur — lower your gun."\n\nThe world waits.\n\nYou and Micah stare at each other over Dutch's shoulder. Micah's eyes say: *not yet. But soon.*`,
+    health: -20,
+    choices: [
+      { text: 'Lower the gun — for Dutch\'s sake', next: 'dutch_chooses', honor: -5 },
+      { text: 'Keep it raised — this ends NOW', next: 'micah_final_duel' },
+    ]
+  },
+
+  escape_chaos: {
+    location: 'Beaver Hollow · Treeline',
+    time: 'Dusk · 1899',
+    sprite: '🤠',
+    narrative: `While Dutch and Micah and Milton circle each other, you move through the chaos getting people out. Tilly, Mary-Beth, the women — you point them north and tell them to run.\n\nBehind you the gunfire starts. The Pinkertons came in force behind Milton.\n\nYou hold the path open as long as you can. Every shot you fire buys someone else thirty more seconds of life.\n\nThis is what it was always for.`,
+    honor: 30, health: -25, kills: 4,
+    choices: [
+      { text: 'Make sure John gets out — find him in the chaos', next: 'final_sacrifice' },
+      { text: 'Go back for Micah — settle it', next: 'micah_final_duel' },
+    ]
+  },
+
+  let_micah_go: {
+    location: 'Beaver Hollow',
+    time: 'Dusk · 1899',
+    sprite: '🤠',
+    narrative: `You let Micah Bell ride away into the dark.\n\nIt costs you something — you can feel it go, like a tooth pulled. But John is alive. Abigail is alive. Jack is alive.\n\nYou watch Micah's silhouette disappear over the ridge and think: *someday*.\n\nSomeday the debt gets collected. Not by you, maybe. But the West has a long memory.`,
+    honor: 15,
+    choices: [
+      { text: 'Get John to safety', next: 'final_sacrifice' },
+    ]
+  },
+
+  micah_final_duel: {
+    location: 'Beaver Hollow · Hillside',
+    time: 'Dusk · 1899',
+    sprite: '😤',
+    narrative: `Micah Bell and Arthur Morgan, alone on a hillside while the world burns below.\n\n"End of the line, Morgan."\n\n"For one of us."\n\nDead Eye ignites — the world slows to amber and shadow. You see every twitch of Micah's hand, every shift of his weight. He's fast. The fastest you've faced.\n\nBut you know something Micah Bell never learned:\n\nSome men draw faster. Some men shoot straighter. But the man who has nothing left to lose is the most dangerous of all.`,
+    choices: [
+      { text: 'DRAW — end it', next: 'micah_defeated', kills: 1, honor: 20, deadEye: -40 },
+    ]
+  },
+
+  micah_defeated: {
+    location: 'Beaver Hollow · Hillside',
+    time: 'Sunset · 1899',
+    sprite: '🤠',
+    narrative: `Micah Bell goes down on the hillside as the sun touches the mountains.\n\nYou stand over him for a moment. Whatever he was — spy, traitor, coward dressed as a killer — it's done now.\n\nThe gang is over. Dutch is gone. The world you knew for twenty years is ash.\n\nBut John Marston is alive. His family is safe.\n\nYou ride east as the last light fades. Slowly. Like a man who's got nowhere left to be in a hurry.\n\n*"I gave you all I had."*`,
+    honor: 25, money: 50,
+    choices: [
+      { text: 'Ride into the sunset — Arthur Morgan\'s story ends here', next: 'epilogue' },
+    ]
+  },
+
+  final_sacrifice: {
+    location: 'Beaver Hollow · Pass',
+    time: 'Sunset · 1899',
+    sprite: '🤠',
+    narrative: `You find John pinned down behind a wagon, Pinkerton bullets chewing the wood apart.\n\nYou stand up. Draw both guns. Walk forward.\n\n"ARTHUR!" John shouts.\n\n"GO, JOHN! RIDE!"\n\nYou hold the pass. Every man who comes through you, you put down. The Pinkertons are good shots. So are you. Better, today.\n\nBehind you, you hear hoofbeats heading north. John. Getting away.\n\nThat's enough.`,
+    honor: 35, kills: 5, health: -40,
+    choices: [
+      { text: 'Hold the line to the last breath', next: 'epilogue_sacrifice' },
+    ]
+  },
+
+  epilogue: {
+    location: 'Heartlands · Open Road',
+    time: 'Sunset · 1899',
+    sprite: '🤠',
+    narrative: `The road east is long and quiet.\n\nYou pass through towns where nobody knows your name. Sleep under stars that don't know or care what you've done.\n\nSomewhere up north, John Marston is starting over. That thought sits warm in your chest like an ember.\n\nArthur Morgan. Outlaw. Killer. And in the end — maybe something more.\n\n*"I tried."*\n\n**— THE END —**`,
+    choices: [
+      { text: 'Play Again', next: 'camp_night' },
+    ]
+  },
+
+  epilogue_sacrifice: {
+    location: 'Beaver Hollow · Pass',
+    time: 'Sunset · 1899',
+    sprite: '🤠',
+    narrative: `The last Pinkerton goes down.\n\nYou sit against the rock, watching the light leave the sky. Your hands aren't shaking. That surprises you.\n\nA hawk circles once overhead — slow, easy, like it has all the time in the world.\n\nJohn got out. That's what matters.\n\n*Some debts get paid in the only currency that counts.*\n\n**— THE END · HIGH HONOR —**`,
+    choices: [
+      { text: 'Play Again', next: 'camp_night' },
     ]
   },
 
