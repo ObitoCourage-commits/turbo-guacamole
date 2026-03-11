@@ -839,21 +839,19 @@ PLAYER INFO:
 - Active Quests: ${gameState.quests.filter(q=>q.active).map(q=>q.name).join(', ')}
 
 RULES:
-1. Write vivid, atmospheric descriptions. Use sensory details — the smell of damp concrete, distant gunshots, the clicking of a detector.
-2. Always present 3-4 concrete choices at the end in a JSON block. Format: CHOICES:[{"text":"...","consequence":"neutral/risky/dangerous/reward"},...]
-3. Reference Zone lore: anomalies (Whirligig, Burner, Electro, Vortex), mutants (bloodsucker, snork, boar, pseudodog, controller, chimera), factions (Loners, Duty, Freedom, Bandits, Military, Ecologists, Monolith), artifacts, and Zone folklore.
-4. Track and reference the game state naturally. If the player is hurt, show it. If radiation is building, mention it.
-5. Keep responses to 3-5 paragraphs. Be terse and gritty. No purple prose.
-6. Emit a JSON state update at the very end: STATE:{"hp_delta":0,"rad_delta":0,"money_delta":0,"location":"...","anomaly_level":0,"new_items":[],"quest_updates":[]}
-   - hp_delta: change in HP (negative = damage, positive = healing)
-   - rad_delta: change in radiation level
-   - money_delta: change in rubles
-   - location: current location name
-   - anomaly_level: 0=clear, 1=warning, 2=danger
-   - new_items: array of {name,type,qty,desc} objects to add to inventory
-   - quest_updates: array of {name,status} to update
+1. Write vivid, atmospheric Zone descriptions in 2-3 tight paragraphs. Sensory details: damp concrete, distant gunshots, detector clicks. Terse and gritty — no purple prose.
+2. Reference Zone lore: anomalies (Whirligig, Burner, Electro, Vortex), mutants (bloodsucker, snork, boar, pseudodog, controller, chimera), factions (Loners, Duty, Freedom, Bandits, Military, Ecologists, Monolith), artifacts.
+3. Track and reference game state naturally. Show injuries, radiation, hunger.
+4. ALWAYS end with BOTH of these blocks on their own lines, in this exact format, no exceptions:
 
-Tone: Dark, realistic, hopeful in a bleak way. Like STALKER: Shadow of Chernobyl meets Roadside Picnic.`;
+CHOICES:[{"text":"do something specific","consequence":"neutral"},{"text":"do something specific","consequence":"risky"},{"text":"do something specific","consequence":"dangerous"},{"text":"do something specific","consequence":"reward"}]
+STATE:{"hp_delta":0,"rad_delta":0,"money_delta":0,"location":"Cordon","anomaly_level":0,"new_items":[],"quest_updates":[]}
+
+Keep each choice text under 8 words. consequence = neutral/risky/dangerous/reward only.
+STATE fields: hp_delta/rad_delta/money_delta are integers, location is a string, anomaly_level 0-2, new_items are {name,type,qty,desc}, quest_updates are {name,status}.
+The CHOICES and STATE lines must be the very last two lines of your response.
+
+Tone: Dark, realistic, hopeful in a bleak way. STALKER: Shadow of Chernobyl meets Roadside Picnic.`;
 
   const userMsg = isIntro
     ? `Begin the game. The player is a ${gameState.playerClass} who has just entered the Zone through a gap in the military perimeter at the Cordon. It's early morning, overcast sky, light drizzle. Describe the scene and give opening choices. Make it atmospheric and immediately dangerous.`
@@ -867,7 +865,7 @@ Tone: Dark, realistic, hopeful in a bleak way. Like STALKER: Shadow of Chernobyl
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        max_tokens: 1500,
         system: systemPrompt,
         messages: gameState.conversationHistory,
       }),
@@ -882,25 +880,41 @@ Tone: Dark, realistic, hopeful in a bleak way. Like STALKER: Shadow of Chernobyl
 
     // Parse choices
     let choices = [];
-    const choiceMatch = fullText.match(/CHOICES:\s*(\[[\s\S]*?\])/);
-    if (choiceMatch) {
-      try { choices = JSON.parse(choiceMatch[1]); } catch(e) {}
+    // Parse CHOICES — find last occurrence (most complete)
+    const allChoiceMatches = [...fullText.matchAll(/CHOICES:\s*(\[.*?\])/gs)];
+    if (allChoiceMatches.length) {
+      try { choices = JSON.parse(allChoiceMatches[allChoiceMatches.length-1][1]); } catch(e) {}
+    }
+    // Fallback: try greedy match if lazy failed
+    if (!choices.length) {
+      const greedyMatch = fullText.match(/CHOICES:\s*(\[.*\])/s);
+      if (greedyMatch) { try { choices = JSON.parse(greedyMatch[1]); } catch(e) {} }
     }
 
-    // Parse state update
-    const stateMatch = fullText.match(/STATE:\s*(\{[\s\S]*?\})/);
-    if (stateMatch) {
+    // Parse STATE — find last occurrence
+    const allStateMatches = [...fullText.matchAll(/STATE:\s*(\{.*?\})/gs)];
+    if (allStateMatches.length) {
       try {
-        const update = JSON.parse(stateMatch[1]);
+        const update = JSON.parse(allStateMatches[allStateMatches.length-1][1]);
         applyStateUpdate(update);
       } catch(e) {}
     }
 
-    // Strip JSON from display text
+    // Strip JSON blocks from display text
     let displayText = fullText
-      .replace(/CHOICES:\s*\[[\s\S]*?\]/g, '')
-      .replace(/STATE:\s*\{[\s\S]*?\}/g, '')
+      .replace(/CHOICES:\s*\[.*?\]/gs, '')
+      .replace(/STATE:\s*\{.*?\}/gs, '')
       .trim();
+
+    // If we still have no choices, add fallback so player is never stuck
+    if (!choices.length) {
+      choices = [
+        {text: 'Observe and wait', consequence: 'neutral'},
+        {text: 'Move forward carefully', consequence: 'risky'},
+        {text: 'Fall back and reassess', consequence: 'neutral'},
+        {text: 'Search for supplies nearby', consequence: 'reward'},
+      ];
+    }
 
     addNarratorMessage(displayText, choices);
 
@@ -1148,8 +1162,5 @@ function showDeath() {
   document.body.appendChild(overlay);
 }
 </script>
-<meta name="game-title" content="S.T.A.L.K.E.R.: INTO THE ZONE">
-<meta name="game-file" content="stalker-rpg.html">
-<script src="game-utils.js"></script>
 </body>
 </html>
