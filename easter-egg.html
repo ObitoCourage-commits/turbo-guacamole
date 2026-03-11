@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐱 You Found the Easter Egg!</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:#03040a;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    font-family:'Nunito',sans-serif;
+    overflow:hidden;
+  }
+
+  /* Star background */
+  canvas{position:fixed;top:0;left:0;z-index:0;pointer-events:none}
+
+  .content{
+    position:relative;
+    z-index:10;
+    text-align:center;
+    padding:30px 20px;
+    max-width:700px;
+    width:100%;
+  }
+
+  .egg-label{
+    font-family:'Fredoka One',cursive;
+    font-size:clamp(0.8rem,2vw,1rem);
+    letter-spacing:6px;
+    color:#f0a500;
+    text-transform:uppercase;
+    margin-bottom:12px;
+    animation:flicker 3s ease-in-out infinite;
+  }
+  @keyframes flicker{
+    0%,100%{opacity:1}
+    50%{opacity:0.6}
+  }
+
+  .egg-title{
+    font-family:'Fredoka One',cursive;
+    font-size:clamp(2rem,7vw,3.8rem);
+    line-height:1.1;
+    margin-bottom:8px;
+    background:linear-gradient(135deg,#f0a500,#ff6b9d,#00e5ff,#f0a500);
+    background-size:300% 300%;
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+    animation:gradShift 4s ease infinite;
+  }
+  @keyframes gradShift{
+    0%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+    100%{background-position:0% 50%}
+  }
+
+  .egg-sub{
+    font-size:1rem;
+    color:#4a5270;
+    letter-spacing:3px;
+    font-family:'Fredoka One',cursive;
+    text-transform:uppercase;
+    margin-bottom:36px;
+  }
+
+  .video-wrap{
+    position:relative;
+    border-radius:20px;
+    overflow:hidden;
+    box-shadow:0 0 60px rgba(240,165,0,0.25), 0 0 120px rgba(255,107,157,0.1);
+    border:2px solid rgba(240,165,0,0.3);
+    animation:glow 3s ease-in-out infinite;
+    margin:0 auto;
+    max-width:480px;
+  }
+  @keyframes glow{
+    0%,100%{box-shadow:0 0 40px rgba(240,165,0,0.2),0 0 80px rgba(255,107,157,0.08)}
+    50%{box-shadow:0 0 80px rgba(240,165,0,0.4),0 0 160px rgba(255,107,157,0.2)}
+  }
+  video{
+    width:100%;
+    display:block;
+    border-radius:18px;
+  }
+
+  .back-btn{
+    display:inline-block;
+    margin-top:32px;
+    font-family:'Fredoka One',cursive;
+    font-size:1rem;
+    letter-spacing:3px;
+    padding:12px 32px;
+    background:transparent;
+    color:#f0a500;
+    border:1px solid rgba(240,165,0,0.4);
+    text-decoration:none;
+    clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);
+    transition:all 0.2s;
+    text-transform:uppercase;
+  }
+  .back-btn:hover{
+    background:rgba(240,165,0,0.1);
+    border-color:var(--gold);
+    transform:translateY(-2px);
+  }
+
+  /* Confetti */
+  .confetti{position:fixed;pointer-events:none;z-index:999;top:0;left:0;width:100%;height:100%}
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div class="content">
+  <div class="egg-label">🥚 Secret Unlocked</div>
+  <div class="egg-title">You Found the Easter Egg!</div>
+  <div class="egg-sub">🐱 Robbie says hi 🐱</div>
+
+  <div class="video-wrap">
+    <video autoplay controls loop playsinline>
+      <source src="robbie-secret.mp4" type="video/mp4">
+    </video>
+  </div>
+
+  <a class="back-btn" href="robbies.html">← Back to Robbies</a>
+</div>
+
+<script>
+// Stars
+const sc = document.getElementById('stars');
+const cx = sc.getContext('2d');
+let stars = [];
+function rsz(){sc.width=innerWidth;sc.height=innerHeight;}
+function ist(){stars=[];for(let i=0;i<180;i++)stars.push({x:Math.random()*sc.width,y:Math.random()*sc.height,r:Math.random()*1.2+0.2,o:Math.random()*0.5+0.1,sp:Math.random()*0.1+0.02,tw:Math.random()*Math.PI*2});}
+function dst(){cx.clearRect(0,0,sc.width,sc.height);const t=Date.now()/1000;stars.forEach(s=>{const o=s.o*(0.5+0.5*Math.sin(t*s.sp*3+s.tw));cx.beginPath();cx.arc(s.x,s.y,s.r,0,Math.PI*2);cx.fillStyle=`rgba(190,205,255,${o})`;cx.fill();});requestAnimationFrame(dst);}
+rsz();ist();dst();
+window.addEventListener('resize',()=>{rsz();ist();});
+
+// Confetti burst on load
+const colors=['#f0a500','#ff6b9d','#00e5ff','#cc44ff','#00ff88','#ffd93d'];
+function spawnConfetti(){
+  for(let i=0;i<60;i++){
+    const el=document.createElement('div');
+    el.style.cssText=`position:fixed;width:${Math.random()*10+5}px;height:${Math.random()*10+5}px;background:${colors[Math.floor(Math.random()*colors.length)]};left:${Math.random()*100}vw;top:-20px;border-radius:${Math.random()>0.5?'50%':'2px'};z-index:999;pointer-events:none;animation:confettiFall ${Math.random()*2+1}s ${Math.random()*0.5}s linear forwards`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),3000);
+  }
+}
+
+const style=document.createElement('style');
+style.textContent='@keyframes confettiFall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}';
+document.head.appendChild(style);
+spawnConfetti();
+setTimeout(spawnConfetti, 1200);
+</script>
+</body>
+</html>
