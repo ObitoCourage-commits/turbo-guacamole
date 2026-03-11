@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red Dead Redemption II — The Outlaw's Road</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d0a07;
+  --panel:#1a1208;
+  --panel2:#221a0d;
+  --border:#4a3820;
+  --border2:#6b5230;
+  --gold:#c9a84c;
+  --gold2:#e8c86a;
+  --red:#8b2020;
+  --red2:#c0392b;
+  --cream:#d4c4a0;
+  --dim:#7a6a50;
+  --text:#c8b890;
+  --bright:#e8d8b0;
+  --green:#4a7a3a;
+  --green2:#6aaa5a;
+  --sky:#1a2a3a;
+}
+
+body{
+  background:var(--bg);
+  font-family:'Crimson Text',serif;
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  cursor:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Ccircle cx='10' cy='10' r='3' fill='%23c9a84c'/%3E%3C/svg%3E") 10 10, crosshair;
+}
+
+/* Grain overlay */
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:999;opacity:0.35;
+}
+
+/* ── SCENE ── */
+#scene{
+  position:relative;
+  width:100%;height:320px;
+  overflow:hidden;
+  border-bottom:2px solid var(--border);
+}
+.sky{
+  position:absolute;inset:0;
+  background:linear-gradient(180deg,#0a1520 0%,#1a2d1a 60%,#2a3a1a 100%);
+}
+.stars{position:absolute;top:0;left:0;width:100%;height:60%}
+.moon{
+  position:absolute;top:30px;right:120px;
+  width:50px;height:50px;
+  background:radial-gradient(circle at 35% 35%,#fffde0,#d4c070);
+  border-radius:50%;
+  box-shadow:0 0 40px rgba(212,192,112,0.4),0 0 80px rgba(212,192,112,0.15);
+}
+.mountains{
+  position:absolute;bottom:80px;left:0;width:100%;
+  height:160px;
+}
+.ground{
+  position:absolute;bottom:0;left:0;width:100%;height:90px;
+  background:linear-gradient(180deg,#1a2a10,#0f1a08);
+}
+.campfire{
+  position:absolute;bottom:88px;left:50%;transform:translateX(-50%);
+  width:40px;text-align:center;
+}
+.fire-glow{
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:80px;height:80px;
+  background:radial-gradient(circle,rgba(255,120,20,0.35),transparent 70%);
+  border-radius:50%;
+  animation:flicker 1.5s ease-in-out infinite;
+}
+@keyframes flicker{0%,100%{transform:translateX(-50%) scale(1);opacity:0.8}50%{transform:translateX(-50%) scale(1.15);opacity:1}}
+.fire-emoji{font-size:28px;animation:sway 2s ease-in-out infinite;display:block}
+@keyframes sway{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.player-sprite{
+  position:absolute;bottom:88px;left:38%;
+  font-size:36px;
+  filter:drop-shadow(0 0 8px rgba(201,168,76,0.3));
+  animation:breathe 4s ease-in-out infinite;
+}
+@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.scene-fog{
+  position:absolute;bottom:60px;left:0;width:100%;height:80px;
+  background:linear-gradient(180deg,transparent,rgba(20,30,15,0.6));
+  pointer-events:none;
+}
+.location-tag{
+  position:absolute;top:16px;left:20px;
+  font-family:'Cinzel',serif;
+  font-size:11px;letter-spacing:4px;
+  color:var(--gold);
+  text-transform:uppercase;
+  opacity:0.8;
+}
+.time-tag{
+  position:absolute;top:16px;right:20px;
+  font-family:'Cinzel',serif;
+  font-size:11px;letter-spacing:3px;
+  color:var(--dim);
+  text-transform:uppercase;
+}
+
+/* ── LAYOUT ── */
+#game{max-width:960px;margin:0 auto;padding:20px}
+.game-cols{display:grid;grid-template-columns:1fr 320px;gap:16px;margin-top:16px}
+@media(max-width:700px){.game-cols{grid-template-columns:1fr}}
+
+/* ── PANELS ── */
+.panel{
+  background:var(--panel);
+  border:1px solid var(--border);
+  position:relative;
+  overflow:hidden;
+}
+.panel::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  opacity:0.4;
+}
+.panel-title{
+  font-family:'Cinzel',serif;
+  font-size:10px;letter-spacing:4px;
+  color:var(--gold);
+  text-transform:uppercase;
+  padding:12px 16px 8px;
+  border-bottom:1px solid var(--border);
+  opacity:0.9;
+}
+
+/* ── NARRATIVE ── */
+#narrative-box{
+  padding:20px;
+  min-height:180px;
+  font-size:17px;
+  line-height:1.8;
+  color:var(--bright);
+  font-style:italic;
+  position:relative;
+}
+#narrative-text{
+  animation:fadeText 0.5s ease;
+}
+@keyframes fadeText{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CHOICES ── */
+#choices{padding:12px 16px 16px;display:flex;flex-direction:column;gap:8px}
+.choice-btn{
+  font-family:'Crimson Text',serif;
+  font-size:16px;
+  color:var(--cream);
+  background:transparent;
+  border:1px solid var(--border);
+  padding:11px 18px;
+  text-align:left;
+  cursor:pointer;
+  transition:all 0.2s;
+  position:relative;
+  overflow:hidden;
+  line-height:1.4;
+}
+.choice-btn::before{
+  content:'›';
+  color:var(--gold);
+  margin-right:10px;
+  font-size:18px;
+}
+.choice-btn:hover{
+  background:rgba(201,168,76,0.07);
+  border-color:var(--gold);
+  color:var(--bright);
+  padding-left:24px;
+}
+.choice-btn:active{transform:scale(0.99)}
+.choice-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* ── STATS ── */
+.stats-grid{padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-row{display:flex;flex-direction:column;gap:4px}
+.stat-label{font-family:'Cinzel',serif;font-size:8px;letter-spacing:3px;color:var(--dim);text-transform:uppercase}
+.stat-bar-wrap{height:6px;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:1px;overflow:hidden}
+.stat-bar{height:100%;transition:width 0.5s ease;border-radius:1px}
+.bar-health{background:linear-gradient(90deg,#8b2020,#c0392b)}
+.bar-stamina{background:linear-gradient(90deg,#1a5a2a,#2ecc71)}
+.bar-dead{background:linear-gradient(90deg,#4a3820,#6b5230)}
+.bar-honor{background:linear-gradient(90deg,#4a3060,#9b59b6)}
+.stat-val{font-family:'Cinzel',serif;font-size:9px;color:var(--gold2);letter-spacing:1px}
+
+/* ── INVENTORY ── */
+.inv-grid{padding:12px 16px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.inv-item{
+  background:var(--panel2);
+  border:1px solid var(--border);
+  padding:8px 4px;
+  text-align:center;
+  font-size:20px;
+  position:relative;
+  transition:border-color 0.2s;
+}
+.inv-item:hover{border-color:var(--gold)}
+.inv-count{
+  position:absolute;bottom:2px;right:4px;
+  font-family:'Cinzel',serif;
+  font-size:8px;color:var(--gold);
+}
+.inv-empty{opacity:0.2;font-size:14px;color:var(--dim)}
+
+/* ── LOG ── */
+#log-box{padding:12px 16px;max-height:140px;overflow-y:auto}
+#log-box::-webkit-scrollbar{width:4px}
+#log-box::-webkit-scrollbar-track{background:transparent}
+#log-box::-webkit-scrollbar-thumb{background:var(--border)}
+.log-entry{
+  font-size:13px;color:var(--dim);
+  padding:3px 0;
+  border-bottom:1px solid rgba(74,56,32,0.2);
+  line-height:1.4;
+}
+.log-entry.important{color:var(--gold)}
+.log-entry.danger{color:var(--red2)}
+.log-entry.good{color:var(--green2)}
+
+/* ── WANTED ── */
+.wanted-strip{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 16px;
+  background:rgba(139,32,32,0.15);
+  border-top:1px solid rgba(139,32,32,0.3);
+}
+.wanted-stars{font-size:14px;letter-spacing:2px}
+.wanted-label{font-family:'Cinzel',serif;font-size:9px;letter-spacing:3px;color:var(--red2);text-transform:uppercase}
+
+/* ── HEADER ── */
+#header{
+  text-align:center;padding:28px 20px 16px;
+  position:relative;
+}
+.game-title{
+  font-family:'Cinzel',serif;
+  font-size:clamp(1.6rem,5vw,2.8rem);
+  font-weight:900;
+  letter-spacing:6px;
+  color:var(--gold);
+  text-shadow:0 0 40px rgba(201,168,76,0.3);
+  text-transform:uppercase;
+  line-height:1;
+}
+.game-sub{
+  font-family:'Cinzel',serif;
+  font-size:11px;letter-spacing:5px;
+  color:var(--dim);
+  text-transform:uppercase;
+  margin-top:8px;
+}
+.title-rule{
+  width:200px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  margin:12px auto 0;
+  opacity:0.5;
+}
+
+/* ── NOTIFICATION ── */
+#notif{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  background:var(--panel2);
+  border:1px solid var(--gold);
+  padding:10px 28px;
+  font-family:'Cinzel',serif;
+  font-size:12px;letter-spacing:3px;
+  color:var(--gold2);
+  text-transform:uppercase;
+  opacity:0;
+  transition:opacity 0.3s;
+  pointer-events:none;
+  z-index:100;
+  white-space:nowrap;
+}
+#notif.show{opacity:1}
+
+/* ── CHAPTER TITLE ── */
+.chapter-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.85);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:200;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.5s;
+}
+.chapter-overlay.show{opacity:1;pointer-events:all}
+.chapter-num{font-family:'Cinzel',serif;font-size:13px;letter-spacing:8px;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
+.chapter-name{font-family:'Cinzel',serif;font-size:clamp(1.8rem,5vw,3rem);letter-spacing:6px;color:var(--gold);text-align:center;padding:0 20px}
+.chapter-rule{width:300px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:20px auto}
+
+/* ── DEAD OVERLAY ── */
+.dead-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.92);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  z-index:300;
+}
+.dead-overlay.show{display:flex}
+.dead-title{font-family:'Cinzel',serif;font-size:clamp(2rem,6vw,4rem);letter-spacing:8px;color:var(--red2);text-transform:uppercase;margin-bottom:20px}
+.dead-sub{font-family:'Crimson Text',serif;font-size:1.2rem;color:var(--dim);font-style:italic;margin-bottom:32px}
+.restart-btn{
+  font-family:'Cinzel',serif;font-size:12px;letter-spacing:4px;
+  padding:14px 36px;background:transparent;color:var(--gold);
+  border:1px solid var(--gold);cursor:pointer;text-transform:uppercase;
+  transition:all 0.2s;
+}
+.restart-btn:hover{background:rgba(201,168,76,0.1)}
+</style>
+</head>
+<body>
+
+<div id="notif"></div>
+
+<div class="chapter-overlay" id="chapter-overlay">
+  <div class="chapter-num" id="chapter-num">Chapter I</div>
+  <div class="chapter-name" id="chapter-name">Outlaws from the West</div>
+  <div class="chapter-rule"></div>
+</div>
+
+<div class="dead-overlay" id="dead-overlay">
+  <div class="dead-title">You Died</div>
+  <div class="dead-sub" id="dead-sub">Arthur Morgan's story ends here...</div>
+  <button class="restart-btn" onclick="restartGame()">Rise Again</button>
+</div>
+
+<!-- Scene -->
+<div id="scene">
+  <div class="sky"></div>
+  <canvas class="stars" id="star-canvas"></canvas>
+  <div class="moon"></div>
+  <svg class="mountains" viewBox="0 0 960 160" preserveAspectRatio="none">
+    <polygon points="0,160 80,40 160,100 240,20 360,110 440,50 520,120 620,30 720,90 800,10 880,70 960,40 960,160" fill="#0f1f0a" opacity="0.9"/>
+    <polygon points="0,160 60,80 140,130 220,60 320,140 420,80 500,150 580,70 680,120 760,50 860,100 960,60 960,160" fill="#0a1506" opacity="0.7"/>
+  </svg>
+  <div class="ground"></div>
+  <div class="campfire">
+    <div class="fire-glow"></div>
+    <span class="fire-emoji">🔥</span>
+  </div>
+  <div class="player-sprite" id="player-sprite">🤠</div>
+  <div class="scene-fog"></div>
+  <div class="location-tag" id="location-tag">Flat Iron Lake</div>
+  <div class="time-tag" id="time-tag">Night · 1899</div>
+</div>
+
+<!-- Header -->
+<div id="header">
+  <div class="game-title">Red Dead Redemption II</div>
+  <div class="game-sub">The Outlaw's Road</div>
+  <div class="title-rule"></div>
+</div>
+
+<!-- Game -->
+<div id="game">
+  <div class="game-cols">
+
+    <!-- Left: Story + Choices -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <div class="panel">
+        <div class="panel-title">▸ The Story</div>
+        <div id="narrative-box">
+          <div id="narrative-text"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">▸ What Will You Do</div>
+        <div id="choices"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">▸ Journal</div>
+        <div id="log-box"></div>
+      </div>
+
+    </div>
+
+    <!-- Right: Stats + Inventory -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+
+      <div class="panel">
+        <div class="panel-title">▸ Arthur Morgan</div>
+        <div class="stats-grid">
+          <div class="stat-row">
+            <div class="stat-label">Health</div>
+            <div class="stat-bar-wrap"><div class="stat-bar bar-health" id="bar-health" style="width:100%"></div></div>
+            <div class="stat-val" id="val-health">100</div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">Stamina</div>
+            <div class="stat-bar-wrap"><div class="stat-bar bar-stamina" id="bar-stamina" style="width:100%"></div></div>
+            <div class="stat-val" id="val-stamina">100</div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">Dead Eye</div>
+            <div class="stat-bar-wrap"><div class="stat-bar bar-dead" id="bar-dead" style="width:60%"></div></div>
+            <div class="stat-val" id="val-dead">60</div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label">Honor</div>
+            <div class="stat-bar-wrap"><div class="stat-bar bar-honor" id="bar-honor" style="width:50%"></div></div>
+            <div class="stat-val" id="val-honor">50</div>
+          </div>
+        </div>
+        <div style="padding:0 16px 8px;display:flex;gap:16px">
+          <div>
+            <div class="stat-label" style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:2px;color:var(--dim)">MONEY</div>
+            <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--gold2)" id="val-money">$12.50</div>
+          </div>
+          <div>
+            <div class="stat-label" style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:2px;color:var(--dim)">KILLS</div>
+            <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--red2)" id="val-kills">0</div>
+          </div>
+          <div>
+            <div class="stat-label" style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:2px;color:var(--dim)">CHAPTER</div>
+            <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--cream)" id="val-chapter">I</div>
+          </div>
+        </div>
+        <div class="wanted-strip" id="wanted-strip">
+          <span class="wanted-label">Wanted</span>
+          <span class="wanted-stars" id="wanted-stars">☆☆☆☆☆</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">▸ Satchel</div>
+        <div class="inv-grid" id="inv-grid"></div>
+      </div>
+
+      <div class="panel" style="padding:14px 16px">
+        <div class="panel-title" style="padding:0 0 8px;border:none;margin-bottom:8px">▸ Camp</div>
+        <div style="font-size:13px;color:var(--dim);line-height:1.7" id="camp-status">
+          Dutch is planning something big.<br>
+          The gang is restless tonight.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────
+let state = {
+  health: 100, stamina: 100, deadEye: 60, honor: 50,
+  money: 12.50, kills: 0, wanted: 0, chapter: 1,
+  inventory: { bullets: 24, whiskey: 2, tobacco: 1, bandana: 1 },
+  scene: 'camp_night', flags: {}
+};
+
+// ── SCENES ────────────────────────────────────────────────
+const SCENES = {
+
+  camp_night: {
+    location: 'Horseshoe Overlook · Lemoyne',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `The night air hangs heavy over camp. A coyote calls somewhere in the dark pines. Arthur Morgan sits by the fire, rolling a cigarette between calloused fingers.\n\nDutch paces nearby, muttering about Tahiti. Hosea reads by lantern light. The Pinkertons are getting closer — everyone feels it.`,
+    choices: [
+      { text: 'Ride out to rob the Flaco gang stagecoach', next: 'stagecoach_approach', stamina: -10 },
+      { text: 'Talk to Dutch about the next job', next: 'dutch_talk' },
+      { text: 'Head into Valentine for supplies', next: 'valentine_town', money: -2 },
+      { text: 'Go hunting in the Heartlands', next: 'hunting', stamina: -15 },
+      { text: 'Rest at camp and tend your wounds', next: 'rest', health: 20, stamina: 20 },
+    ]
+  },
+
+  dutch_talk: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `Dutch looks up from his book, eyes gleaming with that familiar fire.\n\n"Arthur, my boy. I've been thinking — there's a train carrying Leviticus Cornwall's payroll through the Heartlands tomorrow. Enough money to get us all somewhere far from these Pinkertons."\n\nHe claps you on the shoulder. "Trust me. I have a plan."`,
+    choices: [
+      { text: '"I trust you, Dutch. Let\'s do it." — Plan the train robbery', next: 'train_robbery', honor: -5 },
+      { text: '"Maybe we lay low for a while first."', next: 'lay_low', honor: 10 },
+      { text: 'Walk away without a word', next: 'camp_night' },
+    ]
+  },
+
+  lay_low: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Dawn · 1899',
+    sprite: '🤠',
+    narrative: `Dutch's eyes narrow. For a moment you see something cold pass across his face — then the warmth returns, practiced and perfect.\n\n"You worry too much, Arthur. Always have." He turns back to his book.\n\nThe morning birds begin calling. Maybe caution is wisdom. Or maybe the gang needs you to be bold.`,
+    choices: [
+      { text: 'Ride to Valentine anyway — see what trouble finds you', next: 'valentine_town' },
+      { text: 'Help Pearson with camp supplies', next: 'camp_chores', stamina: -10 },
+      { text: 'Write in your journal by the fire', next: 'journal_entry', honor: 5 },
+    ]
+  },
+
+  journal_entry: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Morning · 1899',
+    sprite: '🤠',
+    narrative: `You settle against an oak tree and open the worn journal. The pencil moves slowly:\n\n*"Been thinking about what we're doing. Dutch says it'll all work out. It always has before. But something feels different this time. The law's getting smarter. And Dutch... Dutch seems more desperate."*\n\nYou close the journal. The truth has a way of looking worse on paper.`,
+    choices: [
+      { text: 'Ride out — the day won\'t wait', next: 'camp_night', honor: 5 },
+      { text: 'Head to the train robbery after all', next: 'train_robbery' },
+    ]
+  },
+
+  camp_chores: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Morning · 1899',
+    sprite: '🤠',
+    narrative: `You spend the morning helping Pearson salt meat and repair wagon wheels. Simple work. Honest work — by outlaw standards, anyway.\n\nThe camp feels almost peaceful. Mary-Beth waves from her wagon. Uncle complains about his lumbago. Javier plays guitar in the shade.\n\nFor a moment, it feels like a life worth living.`,
+    money: 0, honor: 10, stamina: -10,
+    choices: [
+      { text: 'The day is young — ride to Valentine', next: 'valentine_town' },
+      { text: 'Join Javier for a song', next: 'camp_night', honor: 5 },
+      { text: 'Plan the train job with Dutch', next: 'train_robbery' },
+    ]
+  },
+
+  valentine_town: {
+    location: 'Valentine · West Elizabeth',
+    time: 'Afternoon · 1899',
+    sprite: '🤠',
+    narrative: `Valentine stinks of cattle and cheap whiskey — which means it smells like home. Cowboys eye you from the saloon porch. A sheriff's deputy tips his hat with practiced suspicion.\n\nThe general store has supplies. The saloon has trouble. And there's a notice board full of bounties — some of them might even be worth chasing.`,
+    choices: [
+      { text: 'Enter the saloon for a drink and information', next: 'saloon', money: -1.50, stamina: 10 },
+      { text: 'Buy ammunition and medical supplies', next: 'buy_supplies', money: -4, health: 10 },
+      { text: 'Check the bounty board outside the sheriff\'s office', next: 'bounty_board' },
+      { text: 'A man bumps into you — start a fight', next: 'bar_fight', honor: -10 },
+      { text: 'Ride back to camp', next: 'camp_night', stamina: -10 },
+    ]
+  },
+
+  saloon: {
+    location: 'Valentine Saloon',
+    time: 'Afternoon · 1899',
+    sprite: '🤠',
+    narrative: `The barkeep slides you a whiskey without being asked — that's the kind of place Valentine is. You overhear two men arguing at the poker table. One of them owes a man named Downes money.\n\nA woman in the corner catches your eye and nods toward the back room. A stranger at the bar mutters something about a Lemoyne Raider camp near Rhodes.`,
+    choices: [
+      { text: 'Play poker — risk $5', next: 'poker_win', money: -5 },
+      { text: 'Ask the barkeep about the Lemoyne Raiders', next: 'raider_info' },
+      { text: 'Help the man being pressured about his debt', next: 'debt_help', honor: 15 },
+      { text: 'Leave — this place has trouble written all over it', next: 'valentine_town' },
+    ]
+  },
+
+  poker_win: {
+    location: 'Valentine Saloon · Poker Table',
+    time: 'Evening · 1899',
+    sprite: '🤠',
+    narrative: `The cards are dealt. You study the faces around the table — a nervous rancher, a sweating railroad man, and a slick-haired fellow who's been dealing just a little too smoothly.\n\nYou catch the cheat on his third hand. Dead Eye kicks in — time slows, everything sharpens. You fold your hand and palm the marked card as evidence.\n\nWhen you slam it on the table, the room goes very quiet.`,
+    money: 12,
+    choices: [
+      { text: 'Take your winnings and leave peacefully', next: 'valentine_town', honor: 5, money: 12 },
+      { text: 'Demand the cheater give back what he stole from others', next: 'confront_cheat', honor: 20 },
+      { text: 'Knock him out and take everything', next: 'fight_cheat', honor: -15, money: 8, kills: 0 },
+    ]
+  },
+
+  confront_cheat: {
+    location: 'Valentine Saloon',
+    time: 'Evening · 1899',
+    sprite: '🤠',
+    narrative: `The cheat goes pale. The rancher and railroad man look on as the man slowly empties his pockets onto the table — $23 in stolen winnings.\n\nHe stumbles out the back. The rancher pumps your hand and buys you a drink. The barkeep nods with something that might be respect.\n\nHonor has its own rewards out here.`,
+    honor: 20, money: 8,
+    choices: [
+      { text: 'Drink the free whiskey and head back to camp', next: 'camp_night', stamina: 10 },
+      { text: 'Ride to the Lemoyne Raiders camp for more action', next: 'raider_camp' },
+    ]
+  },
+
+  fight_cheat: {
+    location: 'Valentine Saloon',
+    time: 'Evening · 1899',
+    sprite: '😤',
+    narrative: `Fists fly. The cheat draws a knife — you draw faster. The whole saloon erupts. By the time the deputy kicks the doors open, three men are on the floor and the mirror behind the bar is in pieces.\n\nYou slip out the back with a bloody lip and a pocketful of stolen money. The law is going to remember your face.`,
+    honor: -15, money: 15, wanted: 1, kills: 1,
+    choices: [
+      { text: 'Ride hard out of Valentine', next: 'escape_posse', stamina: -20 },
+      { text: 'Bribe the deputy — $10', next: 'bribe_deputy', money: -10, wanted: -1 },
+    ]
+  },
+
+  debt_help: {
+    location: 'Valentine Saloon',
+    time: 'Evening · 1899',
+    sprite: '🤠',
+    narrative: `You step between the collector and the pale, sickly-looking man. The collector — a Lemoyne enforcer by the look of him — sizes you up.\n\n"This ain't your business, cowboy."\n\n"I'm making it my business." You rest your hand on your holster. After a long moment, the man spits on the floor and leaves.\n\nThe debtor — Thomas Downes — looks at you with exhausted gratitude. He's clearly unwell.`,
+    honor: 20,
+    choices: [
+      { text: 'Ask Downes if there\'s anything else you can do', next: 'downes_quest', honor: 10 },
+      { text: 'Tip your hat and walk away — good deed done', next: 'valentine_town', honor: 5 },
+    ]
+  },
+
+  downes_quest: {
+    location: 'Valentine · Road',
+    time: 'Evening · 1899',
+    sprite: '🤠',
+    narrative: `Thomas Downes tells you about his farm north of town — the collector will be back. His wife Edith and son Archie are there alone.\n\nSomething in his cough sounds wrong. He presses $3 into your hand — the last of what he has.\n\n"Please, look after them if anything happens to me."`,
+    money: 3, honor: 10,
+    choices: [
+      { text: 'Ride to the Downes farm to check on the family', next: 'downes_farm', stamina: -10 },
+      { text: 'Head back to camp — you\'ve done enough for one man', next: 'camp_night' },
+    ]
+  },
+
+  downes_farm: {
+    location: 'Downes Ranch · Heartlands',
+    time: 'Dusk · 1899',
+    sprite: '🤠',
+    narrative: `The Downes farm is modest — weathered but proud. Edith Downes meets you at the gate with wary eyes that soften when you explain.\n\nYou spend an hour fixing the fence, mucking the stable, and making sure the place is secure. Young Archie watches you from the porch, wide-eyed.\n\nEdith hands you a jar of preserved peaches. It's worth more than gold out here.`,
+    honor: 25,
+    choices: [
+      { text: 'Ride back to camp feeling like a decent man', next: 'camp_night', honor: 5 },
+      { text: 'Leave some of your money for the family', next: 'leave_money', money: -5, honor: 20 },
+    ]
+  },
+
+  leave_money: {
+    location: 'Downes Ranch',
+    time: 'Dusk · 1899',
+    sprite: '🤠',
+    narrative: `You press a folded bill into Edith's hand before she can protest. She looks at it, then at you — and her eyes go glassy.\n\n"God bless you, Mr..."\n\n"Just a traveler, ma'am." You tip your hat and ride.\n\nThe sunset paints the Heartlands gold. Maybe Dutch is wrong. Maybe there is a different kind of life out here.`,
+    honor: 20,
+    choices: [
+      { text: 'Ride back to camp', next: 'camp_night' },
+      { text: 'Head straight to the train robbery — easy money', next: 'train_robbery' },
+    ]
+  },
+
+  raider_info: {
+    location: 'Valentine Saloon',
+    time: 'Evening · 1899',
+    sprite: '🤠',
+    narrative: `The barkeep leans close. "Lemoyne Raiders been hitting wagons on the Rhodes road. Got a camp near Braithwaite's land. Sheriff don't go near 'em." He slides you another drink. "Heard there's a reward though. Army's paying $50 for their leader."`,
+    choices: [
+      { text: 'Ride to take on the Lemoyne Raiders', next: 'raider_camp', stamina: -15 },
+      { text: 'File that information away and leave', next: 'valentine_town' },
+    ]
+  },
+
+  bounty_board: {
+    location: 'Valentine · Sheriff\'s Office',
+    time: 'Afternoon · 1899',
+    sprite: '🤠',
+    narrative: `Three wanted posters curl in the afternoon heat:\n\n**"Flaco Hernandez — $25 dead or alive"**\n**"Emmet Granger — $18 for unlawful conduct"**\n**"Billy Midnight — $32 for train robbery"**\n\nThe deputy eyeballs you from the doorway. He's trying to decide if your face matches any of the other papers on his desk.`,
+    choices: [
+      { text: 'Hunt Flaco Hernandez — dangerous but worth it', next: 'bounty_flaco', stamina: -20 },
+      { text: 'Hunt Billy Midnight — he\'s on a train somewhere east', next: 'bounty_midnight', stamina: -20 },
+      { text: 'Leave before the deputy gets curious', next: 'valentine_town' },
+    ]
+  },
+
+  bounty_flaco: {
+    location: 'Grizzlies West · Snow',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `You track Flaco to a frozen cabin deep in the Grizzlies. Snow drives sideways. Your horse is exhausted.\n\nFlaco Hernandez is a quick draw — one of the fastest. He steps out of the cabin and goes for his gun before you've finished speaking.\n\nDead Eye. Time slows to molasses. You see every movement before it happens.`,
+    health: -30, stamina: -30,
+    choices: [
+      { text: 'Draw first — end it quick', next: 'bounty_flaco_kill', deadEye: -20, kills: 1 },
+      { text: 'Shoot to wound — bring him in alive for more money', next: 'bounty_flaco_alive', deadEye: -30, health: -20 },
+    ]
+  },
+
+  bounty_flaco_kill: {
+    location: 'Grizzlies West',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `The shot echoes through the mountains. Flaco goes down in the snow.\n\nYou drape the body over your horse and make the long, cold ride back to Valentine. The deputy doesn't ask questions — just counts out $25 and slides it across the desk.\n\n"Clean work," he says. You don't know if that's a compliment.`,
+    money: 25, honor: -5, kills: 1,
+    choices: [
+      { text: 'Take the money and ride back to camp', next: 'camp_night' },
+      { text: 'Collect the next bounty — Billy Midnight', next: 'bounty_midnight' },
+    ]
+  },
+
+  bounty_flaco_alive: {
+    location: 'Grizzlies West',
+    time: 'Night · 1899',
+    sprite: '🤠',
+    narrative: `You wing him in the shoulder — but Flaco doesn't go down easy. He catches you with a knife across the ribs before you get him hog-tied.\n\nThe ride back is miserable. Cold, bleeding, a cursing outlaw across your saddle.\n\nBut the deputy pays $40 for a live capture. As Flaco is hauled to a cell, you decide it was worth it.`,
+    money: 40, honor: 15, health: -20,
+    choices: [
+      { text: 'Get your wounds seen to and rest', next: 'rest', health: 20 },
+      { text: 'Ride back to camp to report in', next: 'camp_night' },
+    ]
+  },
+
+  bounty_midnight: {
+    location: 'Flat Iron Lake · Train Platform',
+    time: 'Dawn · 1899',
+    sprite: '🤠',
+    narrative: `You find Billy Midnight on a platform at the Flat Iron Lake station — a washed-up gunslinger trying to drink himself into forgetting.\n\nHe looks up when you approach. Something old and tired crosses his face.\n\n"You here to kill me, or arrest me?" He slowly reaches for his gun.`,
+    choices: [
+      { text: 'Draw — give him the duel he deserves', next: 'midnight_duel', kills: 1, money: 32, honor: 5 },
+      { text: '"Turn yourself in, Billy. This doesn\'t have to end bad."', next: 'midnight_talk', honor: 15 },
+    ]
+  },
+
+  midnight_duel: {
+    location: 'Flat Iron Lake Station',
+    time: 'Dawn · 1899',
+    sprite: '🤠',
+    narrative: `The duel is over in a heartbeat. Billy Midnight was fast once — not anymore. He hits the platform boards slow and heavy.\n\nIn his coat pocket: a letter to a daughter he never met, a handful of coins, and a photograph of a life he gave up for this one.\n\nYou collect the bounty. $32. It feels lighter than it should.`,
+    money: 32, honor: -5, kills: 1,
+    choices: [
+      { text: 'Ride back to camp', next: 'camp_night' },
+      { text: 'Head to the train robbery', next: 'train_robbery' },
+    ]
+  },
+
+  midnight_talk: {
+    location: 'Flat Iron Lake Station',
+    time: 'Dawn · 1899',
+    sprite: '🤠',
+    narrative: `Billy looks at you for a long time. The gun slowly lowers.\n\n"Forty years I been running." He laughs — dry, hollow. "Alright, son. Alright."\n\nHe holds out his wrists for the cuffs. You deliver him to Valentine alive. The deputy seems almost impressed.\n\n"Alive bounty's $55," he says. "Damn fine work."`,
+    money: 55, honor: 25,
+    choices: [
+      { text: 'Ride back to camp feeling righteous', next: 'camp_night' },
+    ]
+  },
+
+  stagecoach_approach: {
+    location: 'Heartlands Road · Lemoyne',
+    time: 'Midnight · 1899',
+    sprite: '😤',
+    narrative: `The Flaco gang stagecoach rattles through the Heartlands under a moonless sky. You've been tracking it for two hours.\n\nBeside you, Bill Williamson cracks his knuckles. "Four guards. Payroll inside. Dutch wants it done clean."\n\nThe coach is slowing for the river crossing ahead.`,
+    choices: [
+      { text: 'Ambush from the ridge — Dead Eye engaged', next: 'stagecoach_ambush', deadEye: -20 },
+      { text: 'Block the road ahead — force them to stop', next: 'stagecoach_block', health: -10 },
+      { text: 'Ride alongside and jump onto the coach', next: 'stagecoach_jump', stamina: -25, health: -15 },
+    ]
+  },
+
+  stagecoach_ambush: {
+    location: 'Heartlands · Ridge',
+    time: 'Midnight · 1899',
+    sprite: '😤',
+    narrative: `From the ridge, Dead Eye paints targets like red flowers on every guard. Four shots. Four seconds. The coach lurches to a stop.\n\nYou ride down and crack the strongbox with a thrown stick of dynamite. $340 in payroll spills out into the mud and moonlight.\n\nBill whistles. "Dutch is going to be happy tonight."`,
+    money: 85, kills: 4, honor: -20, wanted: 2,
+    choices: [
+      { text: 'Ride hard back to camp before the Pinkertons arrive', next: 'escape_pinkertons', stamina: -20 },
+      { text: 'Search the guards for extra supplies', next: 'loot_guards', money: 12 },
+    ]
+  },
+
+  stagecoach_block: {
+    location: 'Heartlands River Crossing',
+    time: 'Midnight · 1899',
+    sprite: '😤',
+    narrative: `You and Bill drag a fallen log across the road. The coach driver hauls on the reins — the horses scream.\n\nThe guards come off the sides shooting. Bill takes one in the arm. You take a graze across the cheek. But you're faster.\n\nThree guards down. One runs. You let him go.`,
+    money: 70, kills: 3, health: -25, honor: -15, wanted: 2,
+    choices: [
+      { text: 'Grab the strongbox and ride', next: 'escape_posse', stamina: -20 },
+      { text: 'Help Bill with his wound first', next: 'help_bill', honor: 10 },
+    ]
+  },
+
+  help_bill: {
+    location: 'Heartlands · Road',
+    time: 'Midnight · 1899',
+    sprite: '🤠',
+    narrative: `You tear a strip from your bedroll and tie off Bill's arm wound while he cusses the whole time.\n\n"I didn't need your help," he growls.\n\n"You're welcome, Bill." He almost — almost — smiles.\n\nYou ride back to camp together, slower than you'd like. But at least you both ride back.`,
+    health: -10, honor: 10,
+    choices: [
+      { text: 'Return to camp', next: 'camp_night' },
+    ]
+  },
+
+  stagecoach_jump: {
+    location: 'Heartlands · Moving Coach',
+    time: 'Midnight · 1899',
+    sprite: '😤',
+    narrative: `You push your horse to full gallop alongside the rocking coach — then leap. Your fingers catch the luggage rack.\n\nThe driver cracks a whip across your back. You haul yourself up and take him by the collar. The horses veer wildly.\n\nInside — three more men. It's a good kind of chaos.`,
+    health: -30, stamina: -30, kills: 2, money: 95, honor: -20, wanted: 2,
+    choices: [
+      { text: 'You\'ve got the strongbox — jump clear before it crashes', next: 'escape_posse', health: -10 },
+      { text: 'Stop the coach and take everything', next: 'stagecoach_ambush', money: 20 },
+    ]
+  },
+
+  escape_posse: {
+    location: 'Lemoyne · Open Country',
+    time: 'Before Dawn · 1899',
+    sprite: '😤',
+    narrative: `Hoofbeats thunder behind you. Lanterns bob in the dark — either law or the gang's own men coming back for revenge. Your horse surges beneath you.\n\nThe river ahead. You can lose them in the flooded bottomlands if you're brave enough to cross at night.`,
+    stamina: -20,
+    choices: [
+      { text: 'Cross the river — take the risk', next: 'river_escape', health: -10 },
+      { text: 'Turn and fight — thin the herd', next: 'fight_posse', kills: 2, health: -20, wanted: 1 },
+      { text: 'Veer into the treeline and go dark', next: 'camp_night', stamina: -10 },
+    ]
+  },
+
+  river_escape: {
+    location: 'Flat Iron Lake · Ford',
+    time: 'Before Dawn · 1899',
+    sprite: '🤠',
+    narrative: `The river is high and cold. Your horse finds footing where there shouldn't be any. The posse pulls up at the bank — cursing, lanterns swaying.\n\nOn the far shore, soaked and shivering, you look back. They're not following.\n\nYou ride to camp as the first grey light touches the Heartlands. Dutch is already awake.`,
+    health: -10, wanted: -1,
+    choices: [
+      { text: 'Report to Dutch with the money', next: 'camp_night', honor: 5 },
+      { text: 'Rest first — you earned it', next: 'rest', health: 20, stamina: 20 },
+    ]
+  },
+
+  fight_posse: {
+    location: 'Lemoyne Road',
+    time: 'Before Dawn · 1899',
+    sprite: '😤',
+    narrative: `You wheel your horse around and draw. The posse wasn't expecting that.\n\nThe first two go down fast. The others scatter into the dark, shouting. You reload by feel and listen — nothing but crickets and your own breathing.\n\nThat'll buy you time. Not much, but enough.`,
+    kills: 2, health: -20, honor: -15,
+    choices: [
+      { text: 'Ride hard to camp', next: 'camp_night', stamina: -15 },
+    ]
+  },
+
+  escape_pinkertons: {
+    location: 'Heartlands · Night Ride',
+    time: 'Before Dawn · 1899',
+    sprite: '😤',
+    narrative: `Agent Milton and his Pinkertons are good — you'll give them that. They pick up your trail within the hour.\n\nBut they don't know the Heartlands like you do. You cut through Carmody Dell, cross the Flat Iron at the shallows, and lose them in the marshland south of camp.\n\nYou arrive at Horseshoe Overlook with the sun. Dutch counts the money twice. Smiles once.`,
+    wanted: -1,
+    choices: [
+      { text: 'Rest — you\'ve earned it', next: 'rest', health: 20, stamina: 20 },
+      { text: 'Plan the next job', next: 'train_robbery' },
+    ]
+  },
+
+  loot_guards: {
+    location: 'Heartlands · Road',
+    time: 'Midnight · 1899',
+    sprite: '😤',
+    narrative: `Among the guards you find: extra ammunition, a silver pocket watch, $12 in loose cash, and a letter from someone named Clara.\n\nYou pocket the money. Leave the letter.\n\nSome things should make it home, even if they travel slow.`,
+    money: 12, honor: 5,
+    choices: [
+      { text: 'Ride back to camp', next: 'escape_pinkertons', stamina: -15 },
+    ]
+  },
+
+  bribe_deputy: {
+    location: 'Valentine · Back Alley',
+    time: 'Evening · 1899',
+    sprite: '🤠',
+    narrative: `You press $10 into the deputy's palm. He looks at it. Looks at you. Folds it away.\n\n"I didn't see nothing tonight." He walks off whistling.\n\nCorruption is a reliable currency out here. You feel faintly sick about it — but you feel free, which counts for more.`,
+    honor: -10,
+    choices: [
+      { text: 'Ride back to camp', next: 'camp_night' },
+    ]
+  },
+
+  train_robbery: {
+    location: 'Heartlands Railway · Lemoyne',
+    time: 'Midday · 1899',
+    sprite: '😤',
+    narrative: `Dutch's plan is typically bold: stop the Leviticus Cornwall train at the Flat Iron bridge, clean out the express car, and be gone before anyone knows what happened.\n\nThe train comes around the bend right on schedule. Dutch grins like a man who's never lost.\n\n"Now, Arthur. Like we planned."`,
+    choices: [
+      { text: 'Ride alongside — leap onto the train', next: 'train_board', stamina: -20 },
+      { text: 'Use the explosive on the tracks to stop it', next: 'train_stop', kills: 0 },
+      { text: '"Dutch, I got a bad feeling about this..."', next: 'train_doubt', honor: 10 },
+    ]
+  },
+
+  train_doubt: {
+    location: 'Heartlands Railway',
+    time: 'Midday · 1899',
+    sprite: '🤠',
+    narrative: `Dutch looks at you — really looks at you. Something flickers behind his eyes.\n\n"Arthur. I need you to trust me. One more time."\n\nThe train is getting closer. The gang is watching.\n\nYou take a breath. Trust is a currency that's almost spent.`,
+    choices: [
+      { text: '"Alright, Dutch. One more time." — Join the robbery', next: 'train_board', honor: -5 },
+      { text: 'Hang back — let the others go in first', next: 'train_stop' },
+    ]
+  },
+
+  train_stop: {
+    location: 'Flat Iron Bridge',
+    time: 'Midday · 1899',
+    sprite: '😤',
+    narrative: `The dynamite goes off under the front wheels. The train shrieks and grinds to a stop on the bridge, half the cars hanging over the river.\n\nCornwall's men come off the train shooting. The gang is pinned down. Dutch is yelling something about the money car.\n\nThis was supposed to be clean.`,
+    health: -20, wanted: 3, kills: 3, honor: -20,
+    choices: [
+      { text: 'Fight through to the express car', next: 'train_board', health: -15 },
+      { text: 'Cover Dutch\'s retreat — get everyone out alive', next: 'escape_pinkertons', honor: 20 },
+    ]
+  },
+
+  train_board: {
+    location: 'Moving Train · Express Car',
+    time: 'Midday · 1899',
+    sprite: '😤',
+    narrative: `You muscle through the express car door. A Cornwall guard swings at you with a rifle butt — you duck, drive your elbow into his jaw.\n\nThe strongbox. $1,200 in railroad payroll. Dutch is laughing somewhere behind you.\n\nThen: a Pinkerton whistle from up the line. Three agents on horseback, riding hard.`,
+    money: 120, kills: 2, honor: -15, wanted: 3,
+    choices: [
+      { text: 'Grab the money and jump — everyone out NOW', next: 'escape_pinkertons', money: 80 },
+      { text: 'Hold position — fight off the Pinkertons', next: 'fight_posse', health: -20, kills: 2 },
+    ]
+  },
+
+  buy_supplies: {
+    location: 'Valentine General Store',
+    time: 'Afternoon · 1899',
+    sprite: '🤠',
+    narrative: `The store owner's eyes linger on your sidearm a half-second too long — but money is money. You stock up on ammunition, bandages, and a bottle of patent medicine that probably won't do much.\n\nAt least you're prepared for what's coming. Whatever that turns out to be.`,
+    health: 20,
+    choices: [
+      { text: 'Head back to camp well-supplied', next: 'camp_night' },
+      { text: 'Check the bounty board while you\'re in town', next: 'bounty_board' },
+    ]
+  },
+
+  raider_camp: {
+    location: 'Lemoyne · Braithwaite Road',
+    time: 'Dusk · 1899',
+    sprite: '😤',
+    narrative: `The Lemoyne Raiders have dug into a ruined farmstead off the Rhodes road. Thirteen men at least, Confederate grey and red bandanas.\n\nYou count positions from the treeline. Their leader — a scarred captain named Lemieux — stands by the fire giving orders.\n\nDeadEye sharpens. Thirteen to one. Arthur Morgan's kind of odds.`,
+    choices: [
+      { text: 'Open with Dead Eye from the tree line — take out half before they react', next: 'raider_attack', deadEye: -30, kills: 6, health: -20 },
+      { text: 'Flank around back and take Lemieux first', next: 'raider_flank', stamina: -20, kills: 4, money: 50 },
+      { text: 'Throw your hat in — this is too many men alone', next: 'camp_night' },
+    ]
+  },
+
+  raider_attack: {
+    location: 'Lemoyne · Raider Camp',
+    time: 'Dusk · 1899',
+    sprite: '😤',
+    narrative: `Six down before they know where the shots are coming from. The rest scatter — then rally. You move between cover, calm and systematic.\n\nLemieux charges with a cavalry sabre. You put him down at ten yards.\n\nWhen the smoke clears, the camp is yours. The Army bounty — $50 — is already as good as collected.`,
+    money: 50, kills: 7, honor: -10, wanted: 1, health: -25,
+    choices: [
+      { text: 'Search the camp for supplies and valuables', next: 'loot_guards', money: 20 },
+      { text: 'Ride to collect the bounty in Rhodes', next: 'camp_night', money: 50 },
+    ]
+  },
+
+  raider_flank: {
+    location: 'Lemoyne · Raider Camp',
+    time: 'Dusk · 1899',
+    sprite: '😤',
+    narrative: `Quiet as a shadow through the back fence. You take out the rear guard with a knife — no sound. Then Lemieux, from behind, rifle to the back of his head.\n\n"Army sends their regards."\n\nWithout their captain, the Raiders dissolve into the dark. Clean. Efficient. Almost like you were never there.`,
+    money: 50, kills: 4, honor: 5, health: -10,
+    choices: [
+      { text: 'Collect the bounty and ride back to camp', next: 'camp_night' },
+    ]
+  },
+
+  hunting: {
+    location: 'Heartlands · Open Plains',
+    time: 'Dawn · 1899',
+    sprite: '🤠',
+    narrative: `The Heartlands spread out gold and green in the early light. You spot a buck at 200 yards — perfect pelt if you're careful.\n\nThen you hear it: a distant howl. Wolf pack, moving through the gully to your left.\n\nThe Heartlands giveth and taketh away.`,
+    stamina: -15,
+    choices: [
+      { text: 'Take the careful shot on the buck — perfect pelt', next: 'hunt_success', money: 8, honor: 0 },
+      { text: 'Chase the wolf pack — dangerous but legendary pelt', next: 'hunt_wolf', health: -20, money: 18 },
+      { text: 'Just ride and enjoy the morning', next: 'camp_night', honor: 5, stamina: 10 },
+    ]
+  },
+
+  hunt_success: {
+    location: 'Heartlands · Plains',
+    time: 'Morning · 1899',
+    sprite: '🤠',
+    narrative: `One shot. Clean through the heart. The buck goes down without suffering.\n\nYou skin and dress it with practiced hands — Pearson will be pleased. A perfect pelt, two pounds of venison, antler sheds.\n\nOut here, providing for the camp feels like its own kind of honor.`,
+    money: 8, honor: 10,
+    choices: [
+      { text: 'Bring the game back to camp', next: 'camp_night', honor: 5 },
+      { text: 'Keep hunting — the morning is young', next: 'hunting', stamina: -10 },
+    ]
+  },
+
+  hunt_wolf: {
+    location: 'Heartlands · Gully',
+    time: 'Morning · 1899',
+    sprite: '😤',
+    narrative: `Three wolves. Fast and coordinated. One circles while two attack.\n\nYou take a gash to the left arm before your knife finds the pack leader. The other two break away.\n\nThe alpha's pelt is magnificent — silver-grey, thick. Cripps will pay well for it. Worth every drop of blood.`,
+    health: -20, money: 18, honor: 5,
+    choices: [
+      { text: 'Bind your wounds and ride back to camp', next: 'rest', health: 15 },
+      { text: 'Press on — you\'ve bled for less', next: 'camp_night' },
+    ]
+  },
+
+  rest: {
+    location: 'Horseshoe Overlook · Camp',
+    time: 'Any Hour · 1899',
+    sprite: '🤠',
+    narrative: `You roll out your bedroll near the fire. The camp sounds fade — Dutch's voice, the clinking of tin cups, the distant call of nighthawks.\n\nWhen you wake, everything hurts less. The world feels slightly more possible.\n\n"Sleep while you can," Hosea once told you. "This life don't offer much rest."`,
+    health: 30, stamina: 30,
+    choices: [
+      { text: 'Back to it', next: 'camp_night' },
+    ]
+  },
+
+};
+
+// ── INVENTORY DISPLAY ──────────────────────────────────────
+const INV_ICONS = { bullets:'🔫', whiskey:'🥃', tobacco:'🚬', bandana:'🧣', pelt:'🦌', dynamite:'💥', medicine:'💊' };
+
+function renderInventory() {
+  const grid = document.getElementById('inv-grid');
+  grid.innerHTML = '';
+  const items = Object.entries(state.inventory).filter(([,v]) => v > 0);
+  items.forEach(([k,v]) => {
+    const el = document.createElement('div');
+    el.className = 'inv-item';
+    el.title = k;
+    el.innerHTML = `${INV_ICONS[k]||'📦'}<span class="inv-count">${v}</span>`;
+    grid.appendChild(el);
+  });
+  // Fill empty slots up to 8
+  for(let i = items.length; i < 8; i++) {
+    const el = document.createElement('div');
+    el.className = 'inv-item inv-empty';
+    el.innerHTML = '·';
+    grid.appendChild(el);
+  }
+}
+
+// ── STATS DISPLAY ──────────────────────────────────────────
+function renderStats() {
+  document.getElementById('bar-health').style.width = Math.max(0,state.health) + '%';
+  document.getElementById('bar-stamina').style.width = Math.max(0,state.stamina) + '%';
+  document.getElementById('bar-dead').style.width = Math.max(0,state.deadEye) + '%';
+  document.getElementById('bar-honor').style.width = Math.max(0, Math.min(100, state.honor)) + '%';
+  document.getElementById('val-health').textContent = Math.max(0,state.health);
+  document.getElementById('val-stamina').textContent = Math.max(0,state.stamina);
+  document.getElementById('val-dead').textContent = Math.max(0,state.deadEye);
+  document.getElementById('val-honor').textContent = state.honor;
+  document.getElementById('val-money').textContent = '$' + state.money.toFixed(2);
+  document.getElementById('val-kills').textContent = state.kills;
+  document.getElementById('val-chapter').textContent = ['I','II','III','IV','V','VI'][state.chapter-1];
+
+  // Wanted stars
+  const stars = '★'.repeat(state.wanted) + '☆'.repeat(Math.max(0,5-state.wanted));
+  document.getElementById('wanted-stars').textContent = stars;
+  document.getElementById('wanted-strip').style.background =
+    state.wanted > 0 ? 'rgba(139,32,32,0.25)' : 'rgba(139,32,32,0.08)';
+}
+
+// ── NOTIFICATION ──────────────────────────────────────────
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ── LOG ───────────────────────────────────────────────────
+function addLog(msg, type='') {
+  const box = document.getElementById('log-box');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry' + (type ? ' ' + type : '');
+  entry.textContent = msg;
+  box.insertBefore(entry, box.firstChild);
+  while(box.children.length > 12) box.removeChild(box.lastChild);
+}
+
+// ── SCENE VISUALS ─────────────────────────────────────────
+function updateScene(sceneId) {
+  const s = SCENES[sceneId];
+  if(!s) return;
+  document.getElementById('location-tag').textContent = s.location || '';
+  document.getElementById('time-tag').textContent = s.time || '';
+  document.getElementById('player-sprite').textContent = s.sprite || '🤠';
+
+  // Sky color based on time
+  const t = (s.time||'').toLowerCase();
+  const sky = document.querySelector('.sky');
+  if(t.includes('night') || t.includes('midnight')) {
+    sky.style.background = 'linear-gradient(180deg,#050d18 0%,#0f1a10 60%,#1a2a10 100%)';
+  } else if(t.includes('dawn') || t.includes('dusk')) {
+    sky.style.background = 'linear-gradient(180deg,#1a0a05 0%,#3a1a0a 40%,#2a2a10 100%)';
+  } else if(t.includes('morning') || t.includes('afternoon') || t.includes('midday')) {
+    sky.style.background = 'linear-gradient(180deg,#0a1830 0%,#1a3020 60%,#253a18 100%)';
+  } else {
+    sky.style.background = 'linear-gradient(180deg,#0a1520 0%,#1a2d1a 60%,#2a3a1a 100%)';
+  }
+}
+
+// ── LOAD SCENE ────────────────────────────────────────────
+function loadScene(sceneId) {
+  const scene = SCENES[sceneId];
+  if(!scene) { addLog('Unknown scene: ' + sceneId, 'danger'); return; }
+
+  state.scene = sceneId;
+  updateScene(sceneId);
+
+  // Apply stat changes from scene definition
+  const statChanges = ['health','stamina','deadEye','honor','money','wanted','kills'];
+  statChanges.forEach(key => {
+    if(scene[key] !== undefined) {
+      state[key] = Math.max(key === 'money' ? 0 : (key === 'honor' ? -100 : 0),
+        Math.min(key === 'money' ? 9999 : (key === 'honor' ? 100 : key === 'kills' || key === 'wanted' ? 99 : 100),
+          state[key] + scene[key]));
+    }
+  });
+
+  // Clamp wanted
+  state.wanted = Math.max(0, Math.min(5, state.wanted));
+
+  renderStats();
+  renderInventory();
+
+  // Narrative
+  const narr = document.getElementById('narrative-text');
+  narr.style.animation = 'none';
+  narr.offsetHeight;
+  narr.style.animation = '';
+  narr.innerHTML = scene.narrative.replace(/\*\*(.*?)\*\*/g,'<strong style="color:var(--gold2);font-style:normal">$1</strong>').replace(/\n/g,'<br>');
+
+  // Choices
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  (scene.choices||[]).forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = choice.text;
+
+    // Check if can afford
+    if(choice.money && choice.money < 0 && state.money < Math.abs(choice.money)) {
+      btn.disabled = true;
+      btn.title = 'Not enough money';
+    }
+
+    btn.onclick = () => executeChoice(choice);
+    choicesEl.appendChild(btn);
+  });
+
+  // Death check
+  if(state.health <= 0) {
+    setTimeout(() => showDead(), 800);
+  }
+}
+
+// ── EXECUTE CHOICE ────────────────────────────────────────
+function executeChoice(choice) {
+  // Apply choice-specific changes
+  const keys = ['health','stamina','deadEye','honor','money','wanted','kills'];
+  const notifs = [];
+
+  keys.forEach(key => {
+    if(choice[key] !== undefined && choice[key] !== 0) {
+      const delta = choice[key];
+      state[key] = Math.max(key === 'money' ? 0 : (key === 'honor' ? -100 : 0),
+        Math.min(key === 'money' ? 9999 : (key === 'honor' ? 100 : key === 'kills' || key === 'wanted' ? 99 : 100),
+          state[key] + delta));
+
+      if(key === 'money' && delta > 0) { notifs.push(`+$${delta.toFixed(2)}`); addLog(`Gained $${delta.toFixed(2)}`, 'good'); }
+      if(key === 'money' && delta < 0) { addLog(`Spent $${Math.abs(delta).toFixed(2)}`); }
+      if(key === 'health' && delta < 0) { addLog(`Lost ${Math.abs(delta)} health`, 'danger'); }
+      if(key === 'health' && delta > 0) { addLog(`Restored ${delta} health`, 'good'); }
+      if(key === 'honor' && delta > 0) { addLog(`Honor increased`, 'good'); }
+      if(key === 'honor' && delta < 0) { addLog(`Honor decreased`, 'danger'); }
+      if(key === 'kills' && delta > 0) { addLog(`${delta} killed`, 'danger'); }
+      if(key === 'wanted' && delta > 0) { addLog(`Wanted level increased!`, 'danger'); notify('⭐ WANTED LEVEL UP'); }
+      if(key === 'wanted' && delta < 0) { addLog(`Wanted level cleared`, 'good'); }
+    }
+  });
+
+  // Stamina recovery items
+  if(state.stamina < 20 && state.inventory.whiskey > 0) {
+    state.inventory.whiskey--;
+    state.stamina = Math.min(100, state.stamina + 25);
+    addLog('Drank whiskey to restore stamina', 'good');
+  }
+
+  if(notifs.length) notify(notifs.join(' · '));
+
+  loadScene(choice.next);
+}
+
+// ── DEATH ─────────────────────────────────────────────────
+function showDead() {
+  const msgs = [
+    "Arthur Morgan's story ends here...",
+    "The West claims another soul.",
+    "Some debts can't be paid in blood.",
+    "Dutch's plan didn't account for this.",
+  ];
+  document.getElementById('dead-sub').textContent = msgs[Math.floor(Math.random()*msgs.length)];
+  document.getElementById('dead-overlay').classList.add('show');
+}
+
+function restartGame() {
+  document.getElementById('dead-overlay').classList.remove('show');
+  state = {
+    health: 100, stamina: 100, deadEye: 60, honor: 50,
+    money: 12.50, kills: 0, wanted: 0, chapter: 1,
+    inventory: { bullets: 24, whiskey: 2, tobacco: 1, bandana: 1 },
+    scene: 'camp_night', flags: {}
+  };
+  document.getElementById('log-box').innerHTML = '';
+  loadScene('camp_night');
+  addLog('Arthur Morgan rides again.', 'good');
+}
+
+// ── STARS ─────────────────────────────────────────────────
+function initStars() {
+  const canvas = document.getElementById('star-canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  for(let i=0;i<120;i++){
+    const x = Math.random()*canvas.width;
+    const y = Math.random()*canvas.height;
+    const r = Math.random()*1.2+0.2;
+    const o = Math.random()*0.7+0.1;
+    ctx.beginPath();
+    ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(220,210,180,${o})`;
+    ctx.fill();
+  }
+}
+
+// ── CHAPTER INTRO ─────────────────────────────────────────
+function showChapterIntro() {
+  const overlay = document.getElementById('chapter-overlay');
+  overlay.classList.add('show');
+  setTimeout(() => overlay.classList.remove('show'), 3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────
+window.addEventListener('load', () => {
+  initStars();
+  loadScene('camp_night');
+  addLog('Arthur Morgan makes camp near Flat Iron Lake.', 'important');
+  addLog('The Van der Linde gang is lying low.', '');
+  showChapterIntro();
+});
+</script>
+</body>
+</html>
