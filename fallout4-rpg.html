@@ -723,18 +723,23 @@ Tone: Post-apocalyptic noir with dark humor. Think: rusted cars, skeletal remain
   GS.history.push({role:'user',content:userMsg});
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
+    const messages = [
+      { role: 'user', content: 'SYSTEM INSTRUCTIONS:\n' + sys + '\n\nNow begin.' },
+      { role: 'assistant', content: 'Understood. I am the Fallout 4 narrator. I will follow all rules exactly, always ending with CHOICES and STATE blocks.' },
+      ...GS.history
+    ];
+    const res = await fetch('https://text.pollinations.ai/openai',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system:sys,
-        messages:GS.history,
+        model:'openai',
+        messages: messages,
+        max_tokens:1200,
+        seed: Math.floor(Math.random()*99999),
       })
     });
     const data = await res.json();
-    const raw = data.content?.map(c=>c.text||'').join('')||'';
+    const raw = data.choices?.[0]?.message?.content || '';
     GS.history.push({role:'assistant',content:raw});
 
     typing.remove();
