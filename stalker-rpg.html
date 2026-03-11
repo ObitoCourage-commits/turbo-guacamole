@@ -875,11 +875,14 @@ Tone: Dark, realistic, hopeful in a bleak way. STALKER: Shadow of Chernobyl meet
         messages: messages,
         max_tokens: 1200,
         seed: Math.floor(Math.random() * 99999),
+        private: true,
       }),
     });
 
+    if(!response.ok){ throw new Error('HTTP '+response.status); }
     const data = await response.json();
     const fullText = data.choices?.[0]?.message?.content || '';
+    if(!fullText) throw new Error('Empty response');
 
     gameState.conversationHistory.push({ role: 'assistant', content: fullText });
 
@@ -927,11 +930,13 @@ Tone: Dark, realistic, hopeful in a bleak way. STALKER: Shadow of Chernobyl meet
 
   } catch (err) {
     typingEl.remove();
-    addNarratorMessage('..static.. The Zone interferes with your radio. Something moves in the darkness ahead. Your detector crackles.', [
-      {text: 'Hold position and scan the area', consequence: 'neutral'},
-      {text: 'Move forward cautiously', consequence: 'risky'},
-      {text: 'Fall back to cover', consequence: 'neutral'},
-    ]);
+    console.error('AI error:', err);
+    addSystemMessage('⚠ Signal lost — retrying in 3s...');
+    setTimeout(() => {
+      gameState.isThinking = false;
+      callAI(isIntro ? null : userMsg, isIntro);
+    }, 3000);
+    return;
   }
 
   gameState.isThinking = false;
