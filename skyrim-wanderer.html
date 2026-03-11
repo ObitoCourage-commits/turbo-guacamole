@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKYRIM — The Elder Scrolls</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #0a0a0f;
+  font-family: 'Crimson Text', serif;
+  overflow: hidden;
+  width: 100vw;
+  height: 100vh;
+  cursor: crosshair;
+  user-select: none;
+}
+
+#gameCanvas { display:block; }
+
+/* HUD */
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Health/Magicka/Stamina bars - bottom left */
+.stat-bars {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.stat-bar-bg {
+  width: 160px;
+  height: 10px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.15);
+  position: relative;
+  overflow: hidden;
+}
+.stat-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+  position: relative;
+}
+.stat-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 40%;
+  background: rgba(255,255,255,0.2);
+}
+#healthBar { background: #c0392b; box-shadow: 0 0 8px rgba(192,57,43,0.8); }
+#magickaBar { background: #2980b9; box-shadow: 0 0 8px rgba(41,128,185,0.8); }
+#staminaBar { background: #27ae60; box-shadow: 0 0 8px rgba(39,174,96,0.8); }
+
+/* Compass - top center */
+#compass {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  height: 30px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 100%);
+  border-bottom: 1px solid rgba(200,170,100,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#compassTicks {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: rgba(200,170,100,0.8);
+  letter-spacing: 2px;
+  white-space: nowrap;
+  transition: transform 0.1s;
+}
+.compass-mark { padding: 0 12px; }
+.compass-mark.cardinal { color: rgba(200,170,100,1); font-weight: 600; font-size: 13px; }
+#compassCenter {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 8px;
+  background: rgba(200,170,100,0.9);
+}
+
+/* Level & XP - top left */
+#levelBadge {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: rgba(200,170,100,0.9);
+  text-shadow: 0 0 10px rgba(200,170,100,0.5);
+  letter-spacing: 2px;
+}
+
+/* Location name - center fade in */
+#locationName {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Cinzel', serif;
+  font-size: 32px;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 0 30px rgba(200,170,100,0.6), 0 2px 4px rgba(0,0,0,0.8);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 1s;
+  text-align: center;
+  pointer-events: none;
+}
+#locationSub {
+  font-size: 14px;
+  color: rgba(200,170,100,0.7);
+  letter-spacing: 4px;
+  font-weight: 400;
+  display: block;
+  margin-top: 6px;
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+}
+
+/* Enemy health */
+#enemyHUD {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 200px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+#enemyName {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  color: #e74c3c;
+  letter-spacing: 3px;
+  text-shadow: 0 0 10px rgba(231,76,60,0.6);
+  margin-bottom: 5px;
+}
+#enemyBarBg {
+  width: 200px;
+  height: 8px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(231,76,60,0.4);
+  margin: 0 auto;
+}
+#enemyBarFill {
+  height: 100%;
+  background: #e74c3c;
+  box-shadow: 0 0 8px rgba(231,76,60,0.8);
+  transition: width 0.3s;
+}
+
+/* Crosshair */
+#crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+}
+#crosshair::before, #crosshair::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,0.7);
+}
+#crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+#crosshair::after { width: 100%; height: 2px; top: 50%; transform: translateY(-50%); }
+
+/* Notifications */
+#notifications {
+  position: absolute;
+  top: 100px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+.notif {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  color: rgba(200,170,100,0.9);
+  letter-spacing: 2px;
+  text-shadow: 0 0 8px rgba(200,170,100,0.5);
+  padding: 4px 12px;
+  background: rgba(0,0,0,0.5);
+  border-left: 2px solid rgba(200,170,100,0.4);
+  animation: notifIn 0.3s ease, notifOut 0.5s ease 2.5s forwards;
+}
+@keyframes notifIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+@keyframes notifOut { to { opacity:0; transform:translateX(20px); } }
+
+/* Skill up */
+#skillUp {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  color: rgba(200,170,100,1);
+  text-shadow: 0 0 20px rgba(200,170,100,0.8);
+  letter-spacing: 4px;
+  opacity: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Controls hint */
+#controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  font-family: 'Crimson Text', serif;
+  font-size: 13px;
+  color: rgba(255,255,255,0.35);
+  text-align: right;
+  line-height: 1.8;
+  letter-spacing: 1px;
+}
+
+/* Inventory panel */
+#inventoryPanel {
+  position: absolute;
+  inset: 0;
+  background: rgba(5,5,8,0.95);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  z-index: 200;
+}
+#inventoryPanel.open { display: flex; }
+.inv-window {
+  width: 700px;
+  max-height: 80vh;
+  border: 1px solid rgba(200,170,100,0.3);
+  background: rgba(10,10,15,0.98);
+  padding: 40px;
+  overflow-y: auto;
+}
+.inv-title {
+  font-family: 'Cinzel', serif;
+  font-size: 28px;
+  color: rgba(200,170,100,0.9);
+  letter-spacing: 6px;
+  text-align: center;
+  margin-bottom: 30px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(200,170,100,0.2);
+  padding-bottom: 20px;
+}
+.inv-section { margin-bottom: 24px; }
+.inv-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  color: rgba(200,170,100,0.6);
+  letter-spacing: 4px;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+.inv-items { display: flex; flex-wrap: wrap; gap: 10px; }
+.inv-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(200,170,100,0.15);
+  padding: 10px 14px;
+  font-family: 'Crimson Text', serif;
+  font-size: 15px;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+}
+.inv-item:hover {
+  background: rgba(200,170,100,0.1);
+  border-color: rgba(200,170,100,0.4);
+  color: rgba(200,170,100,1);
+}
+.inv-item.equipped {
+  border-color: rgba(200,170,100,0.6);
+  background: rgba(200,170,100,0.08);
+}
+.inv-close {
+  text-align: center;
+  margin-top: 20px;
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: rgba(200,170,100,0.5);
+  letter-spacing: 3px;
+}
+
+/* Title screen */
+#titleScreen {
+  position: fixed;
+  inset: 0;
+  background: #050508;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+#titleScreen canvas {
+  position: absolute;
+  inset: 0;
+}
+.title-content {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  animation: titleFade 3s ease forwards;
+}
+@keyframes titleFade {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.title-elder {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 8px;
+  color: rgba(200,170,100,0.6);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.title-skyrim {
+  font-family: 'Cinzel', serif;
+  font-size: 72px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 12px;
+  text-shadow: 0 0 60px rgba(200,170,100,0.4), 0 0 120px rgba(200,170,100,0.2);
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.title-scrolls {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 6px;
+  color: rgba(200,170,100,0.5);
+  margin-bottom: 60px;
+}
+.title-press {
+  font-family: 'Crimson Text', serif;
+  font-size: 18px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 3px;
+  font-style: italic;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:0.4;} 50%{opacity:0.8;} }
+
+/* damage flash */
+#damageFlash {
+  position: fixed;
+  inset: 0;
+  background: rgba(180,0,0,0.3);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 150;
+  transition: opacity 0.1s;
+}
+#healFlash {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,180,80,0.2);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 150;
+  transition: opacity 0.1s;
+}
+
+/* shout meter */
+#shoutBar {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+#shoutLabel {
+  font-family: 'Cinzel', serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: rgba(100,180,255,0.7);
+}
+#shoutTrack {
+  width: 120px;
+  height: 6px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(100,180,255,0.3);
+}
+#shoutFill {
+  height: 100%;
+  background: linear-gradient(90deg, #2980b9, #7fc3f8);
+  box-shadow: 0 0 8px rgba(100,180,255,0.6);
+  width: 0%;
+  transition: width 0.2s;
+}
+
+/* message box */
+#msgBox {
+  position: absolute;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(5,5,8,0.92);
+  border: 1px solid rgba(200,170,100,0.3);
+  padding: 16px 28px;
+  max-width: 500px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+#msgBox p {
+  font-family: 'Crimson Text', serif;
+  font-size: 18px;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.5;
+  font-style: italic;
+}
+#msgBox .msg-title {
+  font-family: 'Cinzel', serif;
+  font-size: 11px;
+  color: rgba(200,170,100,0.7);
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+  font-style: normal;
+}
+</style>
+</head>
+<body>
+<div id="nxs-back-bar" style="position:fixed;top:0;left:0;right:0;height:44px;background:rgba(3,4,10,0.97);border-bottom:2px solid #4db8ff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:99999;font-family:'Share Tech Mono',monospace;backdrop-filter:blur(12px);box-shadow:0 2px 20px rgba(77,184,255,0.2);"><a href="index.html" style="font-size:11px;letter-spacing:3px;color:#4db8ff;text-decoration:none;text-transform:uppercase;" onmouseover="this.style.opacity='.7'" onmouseout="this.style.opacity='1'">◀ NEXUS ARCADE</a><span style="font-size:9px;letter-spacing:4px;color:#4a5270;text-transform:uppercase;">SKYRIM</span></div>
+
+<!-- Title Screen -->
+<div id="titleScreen" onclick="startGame()">
+  <canvas id="titleCanvas"></canvas>
+  <div class="title-content">
+    <div class="title-elder">THE ELDER SCROLLS V</div>
+    <div class="title-skyrim">SKYRIM</div>
+    <div class="title-scrolls">DRAGONBORN</div>
+    <div class="title-press">Click to begin your journey</div>
+  </div>
+</div>
+
+<!-- Game Canvas -->
+<canvas id="gameCanvas"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="levelBadge">DRAGONBORN · LEVEL <span id="levelNum">1</span></div>
+
+  <div id="compass">
+    <div id="compassTicks">
+      <span class="compass-mark">···</span>
+      <span class="compass-mark cardinal">N</span>
+      <span class="compass-mark">·</span>
+      <span class="compass-mark">NE</span>
+      <span class="compass-mark">·</span>
+      <span class="compass-mark cardinal">E</span>
+      <span class="compass-mark">·</span>
+      <span class="compass-mark">SE</span>
+      <span class="compass-mark">·</span>
+      <span class="compass-mark cardinal">S</span>
+      <span class="compass-mark">·</span>
+      <span class="compass-mark">SW</span>
+      <span class="compass-mark">·</span>
+      <span class="compass-mark cardinal">W</span>
+      <span class="compass-mark">·</span>
+      <span class="compass-mark">NW</span>
+      <span class="compass-mark">·</span>
+      <span class="compass-mark cardinal">N</span>
+      <span class="compass-mark">···</span>
+    </div>
+    <div id="compassCenter"></div>
+  </div>
+
+  <div class="stat-bars">
+    <div class="stat-row">
+      <span class="stat-icon" style="color:#e74c3c">❤</span>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" id="healthBar" style="width:100%"></div></div>
+    </div>
+    <div class="stat-row">
+      <span class="stat-icon" style="color:#3498db">✦</span>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" id="magickaBar" style="width:80%"></div></div>
+    </div>
+    <div class="stat-row">
+      <span class="stat-icon" style="color:#2ecc71">⚡</span>
+      <div class="stat-bar-bg"><div class="stat-bar-fill" id="staminaBar" style="width:100%"></div></div>
+    </div>
+  </div>
+
+  <div id="enemyHUD">
+    <div id="enemyName">DRAUGR</div>
+    <div id="enemyBarBg"><div id="enemyBarFill" style="width:100%"></div></div>
+  </div>
+
+  <div id="locationName"><span id="locationMain">WHITERUN</span><span id="locationSub">Hold Capital of the Plains</span></div>
+
+  <div id="crosshair"></div>
+
+  <div id="notifications"></div>
+  <div id="skillUp"></div>
+
+  <div id="shoutBar">
+    <div id="shoutLabel">FUS RO DAH</div>
+    <div id="shoutTrack"><div id="shoutFill"></div></div>
+  </div>
+
+  <div id="controls">
+    WASD · Move &nbsp;|&nbsp; Shift · Sprint<br>
+    Click · Attack &nbsp;|&nbsp; Right Click · Magic<br>
+    R · FUS RO DAH &nbsp;|&nbsp; H · Drink Potion<br>
+    I · Inventory &nbsp;|&nbsp; E · Talk / Loot<br>
+    <span style="color:rgba(200,170,100,0.4);font-size:11px;">Explore Skyrim — 12 regions to discover</span>
+  </div>
+
+  <div id="msgBox"><p id="msgText"></p></div>
+</div>
+
+<div id="inventoryPanel">
+  <div class="inv-window">
+    <div class="inv-title">Inventory</div>
+    <div class="inv-section">
+      <div class="inv-section-title">⚔ Weapons</div>
+      <div class="inv-items" id="invWeapons"></div>
+    </div>
+    <div class="inv-section">
+      <div class="inv-section-title">🛡 Armor</div>
+      <div class="inv-items" id="invArmor"></div>
+    </div>
+    <div class="inv-section">
+      <div class="inv-section-title">⚗ Potions & Misc</div>
+      <div class="inv-items" id="invMisc"></div>
+    </div>
+    <div class="inv-close">Press I or ESC to close</div>
+  </div>
+</div>
+
+<div id="damageFlash"></div>
+<div id="healFlash"></div>
+
+<script>
+// ===== TITLE SCREEN =====
+const titleCanvas = document.getElementById('titleCanvas');
+const tctx = titleCanvas.getContext('2d');
+titleCanvas.width = window.innerWidth;
+titleCanvas.height = window.innerHeight;
+
+const stars = [];
+for(let i=0;i<200;i++) stars.push({
+  x: Math.random()*titleCanvas.width,
+  y: Math.random()*titleCanvas.height,
+  r: Math.random()*1.5,
+  a: Math.random()
+});
+
+// Northern lights
+function drawTitleBG() {
+  tctx.fillStyle = '#050508';
+  tctx.fillRect(0,0,titleCanvas.width,titleCanvas.height);
+
+  // Mountains silhouette
+  tctx.fillStyle = '#0d0d14';
+  tctx.beginPath();
+  tctx.moveTo(0, titleCanvas.height);
+  const mpts = [[0,0.7],[0.08,0.45],[0.15,0.6],[0.22,0.35],[0.3,0.5],[0.38,0.3],[0.45,0.52],[0.5,0.28],[0.55,0.48],[0.62,0.32],[0.7,0.5],[0.78,0.38],[0.85,0.55],[0.92,0.42],[1,0.6],[1,1]];
+  mpts.forEach(p => tctx.lineTo(p[0]*titleCanvas.width, p[1]*titleCanvas.height));
+  tctx.fill();
+
+  // Aurora
+  const t = Date.now()*0.0005;
+  for(let i=0;i<3;i++){
+    const g = tctx.createLinearGradient(0, 0, 0, titleCanvas.height*0.6);
+    g.addColorStop(0,'rgba(0,0,0,0)');
+    g.addColorStop(0.3+Math.sin(t+i)*0.1,`rgba(${20+i*10},${80+i*20},${80+i*30},${0.08+Math.sin(t*0.7+i)*0.04})`);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    tctx.fillStyle = g;
+    tctx.fillRect(0,0,titleCanvas.width,titleCanvas.height*0.6);
+  }
+
+  // Stars
+  stars.forEach(s=>{
+    s.a += 0.01;
+    const op = 0.3+Math.sin(s.a)*0.3;
+    tctx.fillStyle = `rgba(255,255,255,${op})`;
+    tctx.beginPath();
+    tctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    tctx.fill();
+  });
+  if(document.getElementById('titleScreen').style.display!=='none'){
+    requestAnimationFrame(drawTitleBG);
+  }
+}
+drawTitleBG();
+
+// ===== GAME ENGINE =====
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let W = canvas.width, H = canvas.height;
+
+// Game state
+const state = {
+  running: false,
+  player: {
+    x: 0, y: 0,
+    health: 100, maxHealth: 100,
+    magicka: 80, maxMagicka: 100,
+    stamina: 100, maxStamina: 100,
+    level: 1, xp: 0, xpNeeded: 100,
+    gold: 0,
+    weapon: 'Iron Sword',
+    armor: 'Leather',
+    speed: 2.5,
+    angle: 0,
+    attackTimer: 0,
+    shoutCharge: 0,
+    shoutMax: 100,
+    isRunning: false,
+  },
+  camera: { x: 0, y: 0 },
+  enemies: [],
+  projectiles: [],
+  particles: [],
+  loot: [],
+  trees: [],
+  rocks: [],
+  buildings: [],
+  npcs: [],
+  keys: {},
+  mouseX: W/2, mouseY: H/2,
+  worldSeed: Math.random()*999|0,
+  time: 0.3, // 0-1, 0.3 = morning
+  timeSpeed: 0.0001,
+  currentLocation: 'WHITERUN',
+  currentLocationSub: 'Hold Capital of the Plains',
+  kills: 0,
+};
+
+const inventory = {
+  weapons: ['Iron Sword','Iron Shield'],
+  armor: ['Leather Armor', 'Iron Helmet'],
+  misc: ['Health Potion x3', 'Stamina Potion x2', 'Dragon Scales x1'],
+  equipped: {weapon: 'Iron Sword', armor: 'Leather Armor'}
+};
+
+// Generate world
+// ===== WORLD REGIONS =====
+const REGIONS = [
+  {name:'WHITERUN',sub:'Hold Capital of the Plains',x:0,y:0,radius:350,
+   color:'#2d4a1e',enemies:['DRAUGR','WOLF','BANDIT'],npcs:[
+    {dx:80,dy:-100,name:'Whiterun Guard',dialogue:'Stay alert, Dragonborn. The roads are dangerous.',type:'guard'},
+    {dx:-80,dy:120,name:'Ulfric Stormcloak',dialogue:'Skyrim belongs to the Nords!',type:'noble'},
+    {dx:150,dy:150,name:'Nazeem',dialogue:'Do you get to the Cloud District very often? Oh, what am I saying — of course you don\'t.',type:'merchant'},
+  ],buildings:[
+    {dx:-200,dy:-200,w:80,h:60,name:'Dragonsreach'},
+    {dx:100,dy:-150,w:60,h:50,name:'Bannered Mare'},
+    {dx:-100,dy:100,w:50,h:45,name:"Warmaiden\'s"},
+    {dx:200,dy:50,w:55,h:45,name:'Temple of Kynareth'},
+    {dx:-300,dy:0,w:45,h:40,name:'Breezehome'},
+    {dx:0,dy:200,w:65,h:55,name:'Companions Hall'},
+  ]},
+  {name:'WHITERUN PLAINS',sub:'Fertile Grasslands',x:600,y:100,radius:500,
+   color:'#3a5520',enemies:['WOLF','BANDIT','WOLF'],npcs:[
+    {dx:0,dy:0,name:'Khajiit Merchant',dialogue:'Khajiit has wares, if you have coin.',type:'merchant'},
+   ],buildings:[
+    {dx:50,dy:50,w:40,h:35,name:'Roadside Inn'},
+    {dx:-100,dy:-80,w:35,h:30,name:'Watchtower'},
+   ]},
+  {name:'RIVERWOOD',sub:'Small Lumber Village',x:400,y:600,radius:250,
+   color:'#2a4a18',enemies:['BANDIT','WOLF'],npcs:[
+    {dx:0,dy:0,name:'Gerdur',dialogue:'Welcome to Riverwood, stranger. Faendal! Show our guest around.',type:'noble'},
+    {dx:80,dy:50,name:'Faendal',dialogue:'I could use some help with the lumber. And... Camilla.',type:'guard'},
+    {dx:-60,dy:-40,name:'Lucan Valerius',dialogue:'Something was stolen from my store. A golden claw...',type:'merchant'},
+   ],buildings:[
+    {dx:-80,dy:-60,w:55,h:45,name:'Sleeping Giant Inn'},
+    {dx:60,dy:-80,w:45,h:40,name:'Riverwood Trader'},
+    {dx:-40,dy:80,w:50,h:45,name:'Lumber Mill'},
+    {dx:100,dy:40,w:35,h:30,name:'Alvor\'s Smithy'},
+   ]},
+  {name:'BLEAK FALLS BARROW',sub:'Ancient Nordic Tomb',x:0,y:800,radius:200,
+   color:'#1a2010',enemies:['DRAUGR','DRAUGR','DRAUGR DEATHLORD'],npcs:[
+    {dx:0,dy:0,name:'Farengar\'s Apprentice',dialogue:'The Dragonstone is somewhere within... if you dare enter.',type:'guard'},
+   ],buildings:[
+    {dx:0,dy:-80,w:90,h:70,name:'Barrow Entrance'},
+    {dx:-60,dy:40,w:40,h:35,name:'Bandit Camp'},
+   ]},
+  {name:'WINDHELM',sub:'City of Kings, Seat of Ulfric',x:-1000,y:-800,radius:400,
+   color:'#1a2530',enemies:['DRAUGR','FROST TROLL','BANDIT'],npcs:[
+    {dx:0,dy:0,name:'Ulfric Stormcloak',dialogue:'SKYRIM BELONGS TO THE NORDS! Talos guide you, Dragonborn.',type:'noble'},
+    {dx:100,dy:-60,name:'Galmar Stone-Fist',dialogue:'You want to join the Stormcloaks? Prove yourself first.',type:'guard'},
+    {dx:-80,dy:80,name:'Brunwulf Free-Winter',dialogue:'The guards don\'t care about the Dunmer here. Someone has to.',type:'noble'},
+   ],buildings:[
+    {dx:-100,dy:-100,w:90,h:70,name:'Palace of the Kings'},
+    {dx:80,dy:-80,w:60,h:50,name:'Candlehearth Hall'},
+    {dx:-60,dy:80,w:50,h:45,name:'New Gnisis Cornerclub'},
+    {dx:100,dy:80,w:45,h:40,name:'Blacksmith Quarters'},
+   ]},
+  {name:'SOLITUDE',sub:'Imperial Capital of Skyrim',x:-800,y:400,radius:350,
+   color:'#253040',enemies:['DRAUGR','BANDIT'],npcs:[
+    {dx:0,dy:0,name:'General Tullius',dialogue:'Ulfric Stormcloak is a traitor and a murderer. He will hang for his crimes.',type:'guard'},
+    {dx:80,dy:60,name:'Jarl Elisif',dialogue:'I miss Torygg so much. But Skyrim must have stability.',type:'noble'},
+    {dx:-80,dy:-60,name:'Erikur',dialogue:'Everything has a price. Even loyalty.',type:'merchant'},
+   ],buildings:[
+    {dx:-120,dy:-80,w:80,h:65,name:'Blue Palace'},
+    {dx:100,dy:-60,w:60,h:50,name:'Bards College'},
+    {dx:-60,dy:80,w:50,h:45,name:'The Winking Skeever'},
+    {dx:80,dy:80,w:45,h:40,name:'Radiant Raiment'},
+   ]},
+  {name:'RIFTENREACH',sub:'City of Shadows',x:1000,y:800,radius:350,
+   color:'#2a1a10',enemies:['BANDIT','DRAUGR'],npcs:[
+    {dx:0,dy:0,name:'Maven Black-Briar',dialogue:'The Black-Briars have run this city for generations. Don\'t interfere.',type:'noble'},
+    {dx:80,dy:-60,name:'Brynjolf',dialogue:'Ah, a new face. How\'s about a quick wager, friend?',type:'merchant'},
+    {dx:-80,dy:80,name:'Mjoll the Lioness',dialogue:'Riften is corrupted. But I won\'t give up on these people.',type:'guard'},
+   ],buildings:[
+    {dx:-80,dy:-80,w:70,h:55,name:'Mistveil Keep'},
+    {dx:80,dy:-50,w:55,h:45,name:'Bee and Barb'},
+    {dx:-60,dy:80,w:50,h:45,name:'Black-Briar Meadery'},
+    {dx:100,dy:80,w:40,h:35,name:'Ratway Entrance'},
+   ]},
+  {name:'THROAT OF THE WORLD',sub:'Highest Peak in Tamriel',x:-200,y:-1200,radius:300,
+   color:'#0f1520',enemies:['FROST TROLL','DRAGON','FROST TROLL'],npcs:[
+    {dx:0,dy:0,name:'Paarthurnax',dialogue:'Drem Yol Lok, Dovahkiin. What do you seek at the peak of the world?',type:'noble'},
+   ],buildings:[
+    {dx:0,dy:-60,w:50,h:40,name:'Hrothgar Steps'},
+    {dx:60,dy:40,w:40,h:35,name:'Ancient Word Wall'},
+   ]},
+  {name:'FALKREATH HOLD',sub:'Forest Among the Pines',x:400,y:-800,radius:400,
+   color:'#1a2d12',enemies:['WOLF','BANDIT','DRAUGR'],npcs:[
+    {dx:0,dy:0,name:'Siddgeir',dialogue:'What do you want? Bring me Black-Briar Mead and I might be helpful.',type:'noble'},
+    {dx:80,dy:60,name:'Valga Vinicia',dialogue:'Dead Man\'s Drink isn\'t much, but it\'s home.',type:'merchant'},
+   ],buildings:[
+    {dx:-70,dy:-60,w:60,h:50,name:'Dead Man\'s Drink'},
+    {dx:60,dy:-70,w:50,h:45,name:'Falkreath Barracks'},
+    {dx:-50,dy:70,w:45,h:40,name:'Grave Concoctions'},
+   ]},
+  {name:'MORTHAL',sub:'Swamp Town of the Hjaalmarch',x:-1200,y:200,radius:250,
+   color:'#1a2520',enemies:['DRAUGR','FROST TROLL'],npcs:[
+    {dx:0,dy:0,name:'Jarl Idgrod',dialogue:'I see things others do not. The future is uncertain, Dragonborn.',type:'noble'},
+    {dx:70,dy:50,name:'Falion',dialogue:'I specialize in the arcane. Specifically... restoration of certain conditions.',type:'merchant'},
+   ],buildings:[
+    {dx:-60,dy:-50,w:60,h:50,name:'Highmoon Hall'},
+    {dx:60,dy:-50,w:45,h:40,name:'Moorside Inn'},
+    {dx:-40,dy:70,w:40,h:35,name:'Falion\'s House'},
+   ]},
+  {name:'DRAGON BRIDGE',sub:'Crossing to the North',x:-600,y:-400,radius:200,
+   color:'#203030',enemies:['WOLF','BANDIT'],npcs:[
+    {dx:0,dy:0,name:'Imperial Soldier',dialogue:'Move along, traveler. This bridge is under Imperial control.',type:'guard'},
+   ],buildings:[
+    {dx:0,dy:-50,w:100,h:20,name:'Dragon Bridge'},
+    {dx:-50,dy:40,w:40,h:35,name:'Four Shields Tavern'},
+   ]},
+  {name:'ANCIENT WORD WALL',sub:'Forgotten Nordic Ruin',x:800,y:-600,radius:180,
+   color:'#151a10',enemies:['DRAUGR','DRAUGR DEATHLORD'],npcs:[],
+   buildings:[
+    {dx:0,dy:0,w:80,h:30,name:'Word Wall'},
+    {dx:0,dy:80,w:60,h:50,name:'Nordic Catacombs'},
+   ]},
+];
+
+function genWorld() {
+  const rng = (seed) => { let s=seed; return ()=>{s=s*16807%2147483647; return (s-1)/2147483646;}; };
+  const r = rng(state.worldSeed);
+
+  // Store discovered regions
+  state.discoveredRegions = new Set(['WHITERUN']);
+  state.currentRegionObj = REGIONS[0];
+
+  // Generate trees across the MASSIVE world
+  for(let i=0;i<600;i++) {
+    state.trees.push({
+      x:(r()-0.5)*6000, y:(r()-0.5)*6000,
+      h:40+r()*60,
+      type:r()>0.3?'pine':r()>0.5?'dead':'snow'
+    });
+  }
+  // Dense forests near certain regions
+  for(let i=0;i<200;i++) {
+    state.trees.push({
+      x: 350 + (r()-0.5)*400, y: 500 + (r()-0.5)*400, // near Riverwood
+      h:50+r()*50, type:'pine'
+    });
+  }
+  // Rocks
+  for(let i=0;i<400;i++) {
+    state.rocks.push({
+      x:(r()-0.5)*6000, y:(r()-0.5)*6000,
+      w:15+r()*50, h:10+r()*35,
+      type:r()>0.5?'granite':r()>0.25?'slate':'snow'
+    });
+  }
+
+  // Build buildings and NPCs from region defs
+  state.buildings = [];
+  state.npcs = [];
+  REGIONS.forEach(reg => {
+    reg.buildings.forEach(b => {
+      state.buildings.push({...b, x:reg.x+b.dx, y:reg.y+b.dy});
+    });
+    reg.npcs.forEach(n => {
+      state.npcs.push({...n, x:reg.x+n.dx, y:reg.y+n.dy, region:reg.name});
+    });
+  });
+
+  // Loot scattered everywhere
+  for(let i=0;i<80;i++) {
+    state.loot.push({
+      x:(r()-0.5)*4000, y:(r()-0.5)*4000,
+      type: r()>0.7?'gold':r()>0.4?'potion':'gem',
+      value: Math.floor(r()*100+5),
+      picked: false
+    });
+  }
+  // Extra loot near ruins/barrows
+  for(let i=0;i<20;i++) {
+    state.loot.push({
+      x: 0+(r()-0.5)*300, y: 800+(r()-0.5)*300,
+      type: r()>0.5?'gold':'gem', value:Math.floor(r()*150+30), picked:false
+    });
+  }
+
+  // Initial enemy wave
+  spawnEnemyWave();
+
+  // Road paths (for minimap)
+  state.roads = [
+    {x1:0,y1:0, x2:400,y2:600},   // Whiterun to Riverwood
+    {x1:0,y1:0, x2:600,y2:100},   // Whiterun plains
+    {x1:0,y1:0, x2:-800,y2:400},  // Whiterun to Solitude via Dragon Bridge
+    {x1:-600,y1:-400, x2:-800,y2:400},
+    {x1:0,y1:0, x2:-1000,y2:-800}, // to Windhelm
+    {x1:0,y1:0, x2:1000,y2:800},  // to Riften
+  ];
+}
+
+const ENEMY_TYPES = {
+  'DRAUGR':        {emoji:'💀',hp:60,maxHp:60,dmg:12,xp:25,speed:0.8,range:40},
+  'DRAUGR DEATHLORD':{emoji:'💀',hp:150,maxHp:150,dmg:25,xp:80,speed:0.7,range:50},
+  'WOLF':          {emoji:'🐺',hp:30,maxHp:30,dmg:8,xp:15,speed:1.8,range:30},
+  'BANDIT':        {emoji:'🗡️',hp:80,maxHp:80,dmg:15,xp:35,speed:1.0,range:45},
+  'DRAGON':        {emoji:'🐉',hp:200,maxHp:200,dmg:30,xp:100,speed:0.5,range:200},
+  'FROST TROLL':   {emoji:'👹',hp:120,maxHp:120,dmg:20,xp:50,speed:0.6,range:50},
+  'MUDCRAB':       {emoji:'🦀',hp:15,maxHp:15,dmg:4,xp:8,speed:0.7,range:25},
+  'SABRE CAT':     {emoji:'🐯',hp:90,maxHp:90,dmg:22,xp:45,speed:2.0,range:35},
+  'GIANT':         {emoji:'🧌',hp:300,maxHp:300,dmg:50,xp:150,speed:0.4,range:80},
+};
+
+function spawnEnemyWave() {
+  // Spawn enemies near each region based on that region's enemy types
+  REGIONS.forEach(reg => {
+    const count = 4 + Math.floor(Math.random()*4);
+    for(let i=0;i<count;i++) {
+      const typeName = reg.enemies[Math.floor(Math.random()*reg.enemies.length)];
+      const tmpl = ENEMY_TYPES[typeName] || ENEMY_TYPES['BANDIT'];
+      const angle = Math.random()*Math.PI*2;
+      const dist = reg.radius*0.5 + Math.random()*reg.radius*0.8;
+      state.enemies.push({
+        ...tmpl,
+        name: typeName,
+        x: reg.x + Math.cos(angle)*dist,
+        y: reg.y + Math.sin(angle)*dist,
+        vx:0, vy:0, attackTimer:0, aggro:false,
+        id: Math.random(), region: reg.name
+      });
+    }
+  });
+  // Also spawn some roamers between regions
+  for(let i=0;i<20;i++) {
+    const typeName = ['WOLF','BANDIT','MUDCRAB','SABRE CAT'][Math.floor(Math.random()*4)];
+    const tmpl = ENEMY_TYPES[typeName];
+    state.enemies.push({
+      ...tmpl, name:typeName,
+      x:(Math.random()-0.5)*5000, y:(Math.random()-0.5)*5000,
+      vx:0,vy:0,attackTimer:0,aggro:false,id:Math.random(),region:'wilderness'
+    });
+  }
+}
+
+// ===== INPUT =====
+document.addEventListener('keydown', e => {
+  state.keys[e.code] = true;
+  if(e.code==='KeyI') toggleInventory();
+  if(e.code==='Escape') closeInventory();
+  if(e.code==='KeyR') doShout();
+  if(e.code==='KeyH') drinkPotion();
+  if(e.code==='KeyE') interact();
+});
+document.addEventListener('keyup', e => { state.keys[e.code] = false; });
+document.addEventListener('mousemove', e => { state.mouseX=e.clientX; state.mouseY=e.clientY; });
+canvas.addEventListener('click', e => { if(state.running) doAttack(e); });
+canvas.addEventListener('contextmenu', e => { e.preventDefault(); if(state.running) doMagic(e); });
+
+// ===== SKY =====
+function getSkyColors() {
+  const t = state.time;
+  // 0=midnight, 0.25=dawn, 0.5=noon, 0.75=dusk, 1=midnight
+  if(t < 0.2) return ['#050510','#0a0520']; // night
+  if(t < 0.3) return ['#1a0a30','#3a1050']; // pre-dawn
+  if(t < 0.4) return ['#cc5500','#ff8833']; // dawn
+  if(t < 0.6) return ['#1a3a6a','#4a7ab5']; // day
+  if(t < 0.7) return ['#cc4400','#ff6622']; // dusk
+  if(t < 0.8) return ['#1a0a30','#2a0840']; // post-dusk
+  return ['#050510','#0a0520']; // night
+}
+
+function drawSky() {
+  const [c1,c2] = getSkyColors();
+  const g = ctx.createLinearGradient(0,0,0,H*0.6);
+  g.addColorStop(0,c1);
+  g.addColorStop(1,c2);
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,W,H*0.6);
+
+  // Sun/Moon
+  const sunX = W * ((state.time * 2) % 1);
+  const sunY = H*0.15 + Math.sin(state.time*Math.PI*2)*H*0.1;
+  if(state.time > 0.25 && state.time < 0.75) {
+    // Sun
+    const sg = ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,25);
+    sg.addColorStop(0,'rgba(255,220,100,0.9)');
+    sg.addColorStop(0.4,'rgba(255,180,50,0.5)');
+    sg.addColorStop(1,'rgba(255,150,0,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.arc(sunX,sunY,25,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,240,180,0.9)';
+    ctx.beginPath(); ctx.arc(sunX,sunY,8,0,Math.PI*2); ctx.fill();
+  } else {
+    // Moon
+    ctx.fillStyle = 'rgba(220,230,255,0.9)';
+    ctx.beginPath(); ctx.arc(sunX,sunY,10,0,Math.PI*2); ctx.fill();
+    // Stars
+    for(let i=0;i<80;i++) {
+      const sx = (i*137.5)%W;
+      const sy = (i*83)%H*0.5;
+      const op = state.time<0.35?0.8:state.time>0.65?0.8:Math.max(0,(state.time-0.65)*8);
+      ctx.fillStyle = `rgba(255,255,255,${op*(0.3+0.7*((i%3)/2))})`;
+      ctx.beginPath(); ctx.arc(sx,sy,0.8+((i%3)*0.4),0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  // Mountains far
+  ctx.fillStyle = `rgba(20,15,35,0.8)`;
+  ctx.beginPath();
+  ctx.moveTo(0,H*0.6);
+  const mw = W;
+  const mpts = [0,0.55, 0.07,0.38, 0.13,0.52, 0.2,0.33, 0.27,0.48, 0.35,0.28, 0.42,0.44, 0.5,0.25, 0.57,0.42, 0.65,0.3, 0.72,0.46, 0.8,0.35, 0.88,0.5, 0.95,0.38, 1,0.55, 1,1];
+  for(let i=0;i<mpts.length;i+=2) ctx.lineTo(mpts[i]*mw, mpts[i+1]*H);
+  ctx.fill();
+
+  // Ground
+  const gt = state.time;
+  let grassCol = gt>0.25&&gt<0.75 ? '#2d4a1e' : '#1a2d10';
+  const gg = ctx.createLinearGradient(0,H*0.55,0,H);
+  gg.addColorStop(0,grassCol);
+  gg.addColorStop(1,'#1a2a10');
+  ctx.fillStyle = gg;
+  ctx.fillRect(0,H*0.55,W,H*0.45);
+}
+
+// ===== WORLD DRAWING =====
+function worldToScreen(wx,wy) {
+  return {
+    x: W/2 + wx - state.camera.x + (state.shakeX||0),
+    y: H/2 + wy - state.camera.y + (state.shakeY||0)
+  };
+}
+
+function getGroundColor() {
+  // Color based on nearest region
+  const p=state.player;
+  const reg=state.currentRegionObj;
+  if(!reg) return {base:[42,61,26], accent:[60,100,30]};
+  // Map region color to RGB-ish tones
+  const regionColors = {
+    'WHITERUN':          {base:[42,61,26],accent:[60,100,30]},
+    'WHITERUN PLAINS':   {base:[50,72,30],accent:[70,110,35]},
+    'RIVERWOOD':         {base:[35,55,20],accent:[50,90,25]},
+    'BLEAK FALLS BARROW':{base:[20,25,15],accent:[35,45,25]},
+    'WINDHELM':          {base:[25,32,40],accent:[40,50,60]},
+    'SOLITUDE':          {base:[30,38,50],accent:[45,55,70]},
+    'RIFTENREACH':       {base:[35,25,15],accent:[55,40,20]},
+    'THROAT OF THE WORLD':{base:[20,22,30],accent:[35,38,50]},
+    'FALKREATH HOLD':    {base:[25,40,18],accent:[40,65,28]},
+    'MORTHAL':           {base:[25,35,30],accent:[40,55,45]},
+    'DRAGON BRIDGE':     {base:[30,40,45],accent:[45,60,65]},
+    'ANCIENT WORD WALL': {base:[18,22,15],accent:[30,35,22]},
+  };
+  return regionColors[reg.name] || {base:[42,61,26],accent:[60,100,30]};
+}
+
+function drawGround() {
+  ctx.save();
+  const gc = getGroundColor();
+  const [r,g,b] = gc.base;
+  const tx = (-state.camera.x % 80 + W) % 80;
+  const ty = (-state.camera.y % 80 + H) % 80;
+  ctx.fillStyle = `rgb(${r},${g},${b})`;
+  ctx.fillRect(0,0,W,H);
+  // Terrain tiles
+  for(let gx=-80;gx<=W+80;gx+=80) for(let gy=-80;gy<=H+80;gy+=80) {
+    const wx=gx-tx; const wy=gy-ty;
+    const v = ((Math.floor((gx+state.camera.x)/80)*7 + Math.floor((gy+state.camera.y)/80)*13) % 5);
+    const c = v*3;
+    ctx.fillStyle = `rgb(${r+c},${g+c+2},${b+c})`;
+    ctx.fillRect(wx,wy,79,79);
+    if(v===0){
+      const [ar,ag,ab]=gc.accent;
+      ctx.fillStyle = `rgba(${ar},${ag},${ab},0.35)`;
+      ctx.fillRect(wx+10,wy+20,3,8);
+      ctx.fillRect(wx+22,wy+10,3,8);
+      ctx.fillRect(wx+50,wy+42,3,8);
+    }
+    // Snow patches in cold regions
+    const reg=state.currentRegionObj;
+    if(reg && (reg.name==='THROAT OF THE WORLD'||reg.name==='WINDHELM') && v===1){
+      ctx.fillStyle='rgba(220,230,245,0.2)';
+      ctx.fillRect(wx+30,wy+30,20,15);
+    }
+    // Swamp patches in Morthal
+    if(reg && reg.name==='MORTHAL' && v===2){
+      ctx.fillStyle='rgba(30,60,40,0.4)';
+      ctx.fillRect(wx+10,wy+50,40,20);
+    }
+  }
+  ctx.restore();
+}
+
+function drawRoads() {
+  if(!state.roads) return;
+  ctx.save();
+  ctx.strokeStyle='rgba(160,140,90,0.25)';
+  ctx.lineWidth=8;
+  state.roads.forEach(rd=>{
+    const {x:x1,y:y1}=worldToScreen(rd.x1,rd.y1);
+    const {x:x2,y:y2}=worldToScreen(rd.x2,rd.y2);
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawShadow(sx,sy,w,h) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(sx,sy,w*0.5,h*0.2,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawTrees() {
+  state.trees.forEach(t => {
+    const {x,y} = worldToScreen(t.x,t.y);
+    if(x<-80||x>W+80||y<-80||y>H+80) return;
+    // Shadow
+    drawShadow(x,y+t.h*0.05,20,10);
+    if(t.type==='pine'){
+      // Trunk
+      ctx.fillStyle='#4a2e0a';
+      ctx.fillRect(x-4,y-t.h*0.3,8,t.h*0.3);
+      // Foliage layers
+      const col = state.time>0.25&&state.time<0.75?'#1e4d0a':'#152f06';
+      ctx.fillStyle = col;
+      [[0,-t.h,20],[0,-t.h*0.75,25],[0,-t.h*0.5,28]].forEach(([ox,oy,r])=>{
+        ctx.beginPath();
+        ctx.moveTo(x+ox,y+oy);
+        ctx.lineTo(x+ox-r,y+oy+t.h*0.25);
+        ctx.lineTo(x+ox+r,y+oy+t.h*0.25);
+        ctx.closePath();
+        ctx.fill();
+        // highlight
+        ctx.fillStyle = 'rgba(80,140,30,0.15)';
+        ctx.beginPath();
+        ctx.moveTo(x+ox,y+oy);
+        ctx.lineTo(x+ox-r*0.3,y+oy+t.h*0.1);
+        ctx.lineTo(x+ox,y+oy);
+        ctx.fill();
+        ctx.fillStyle = col;
+      });
+    } else if(t.type==='snow'){
+      // Snow-covered pine
+      ctx.fillStyle='#4a3a14';
+      ctx.fillRect(x-4,y-t.h*0.3,8,t.h*0.3);
+      [[0,-t.h,18],[0,-t.h*0.72,23],[0,-t.h*0.48,26]].forEach(([ox,oy,r])=>{
+        ctx.fillStyle='#1a3a08';
+        ctx.beginPath(); ctx.moveTo(x+ox,y+oy); ctx.lineTo(x+ox-r,y+oy+t.h*0.25); ctx.lineTo(x+ox+r,y+oy+t.h*0.25); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='rgba(220,230,245,0.7)';
+        ctx.beginPath(); ctx.moveTo(x+ox-r*0.6,y+oy+t.h*0.05); ctx.lineTo(x+ox+r*0.6,y+oy+t.h*0.05); ctx.lineTo(x+ox+r,y+oy+t.h*0.25); ctx.lineTo(x+ox-r,y+oy+t.h*0.25); ctx.closePath(); ctx.fill();
+      });
+    } else {
+      ctx.fillStyle='#3a2508';
+      ctx.fillRect(x-3,y-t.h*0.8,6,t.h*0.8);
+      ctx.strokeStyle='#3a2508'; ctx.lineWidth=2;
+      [[15,-t.h*0.6],[-20,-t.h*0.5],[10,-t.h*0.3],[-15,-t.h*0.2]].forEach(([bx,by])=>{
+        ctx.beginPath(); ctx.moveTo(x,y+by); ctx.lineTo(x+bx,y+by-20); ctx.stroke();
+      });
+    }
+  });
+}
+
+function drawRocks() {
+  state.rocks.forEach(r => {
+    const {x,y} = worldToScreen(r.x,r.y);
+    if(x<-60||x>W+60||y<-60||y>H+60) return;
+    drawShadow(x,y+r.h*0.2,r.w*0.6,r.h*0.3);
+    const col = r.type==='granite'?'#6b6b78':'#3d4040';
+    ctx.fillStyle=col;
+    ctx.beginPath();
+    ctx.moveTo(x-r.w*0.5,y);
+    ctx.lineTo(x-r.w*0.3,y-r.h);
+    ctx.lineTo(x+r.w*0.1,y-r.h*1.1);
+    ctx.lineTo(x+r.w*0.5,y-r.h*0.3);
+    ctx.lineTo(x+r.w*0.4,y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.1)';
+    ctx.beginPath();
+    ctx.moveTo(x-r.w*0.1,y-r.h*0.5);
+    ctx.lineTo(x+r.w*0.1,y-r.h);
+    ctx.lineTo(x+r.w*0.2,y-r.h*0.7);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
+function drawBuildings() {
+  state.buildings.forEach(b => {
+    const {x,y} = worldToScreen(b.x,b.y);
+    if(x<-200||x>W+200) return;
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    ctx.fillRect(x+10,y+b.h*0.1,b.w,b.h*0.15);
+    // Wall
+    ctx.fillStyle='#8a7a5a';
+    ctx.fillRect(x-b.w/2,y-b.h,b.w,b.h);
+    // Roof
+    ctx.fillStyle='#5a3a1a';
+    ctx.beginPath();
+    ctx.moveTo(x-b.w/2-5,y-b.h);
+    ctx.lineTo(x,y-b.h-30);
+    ctx.lineTo(x+b.w/2+5,y-b.h);
+    ctx.closePath();
+    ctx.fill();
+    // Door
+    ctx.fillStyle='#3a2208';
+    ctx.fillRect(x-12,y-22,24,22);
+    // Door arch
+    ctx.beginPath(); ctx.arc(x,y-22,12,Math.PI,0); ctx.fill();
+    // Windows
+    ctx.fillStyle='rgba(200,170,80,0.4)';
+    if(state.time<0.25||state.time>0.75) ctx.fillStyle='rgba(255,200,80,0.6)';
+    ctx.fillRect(x-b.w/2+10,y-b.h+10,14,14);
+    ctx.fillRect(x+b.w/2-24,y-b.h+10,14,14);
+    // Label
+    ctx.fillStyle='rgba(200,170,100,0.6)';
+    ctx.font='10px Cinzel, serif';
+    ctx.textAlign='center';
+    ctx.fillText(b.name,x,y-b.h-36);
+  });
+}
+
+function drawNPCs() {
+  state.npcs.forEach(n => {
+    const {x,y} = worldToScreen(n.x,n.y);
+    if(x<-40||x>W+40||y<-40||y>H+40) return;
+    drawShadow(x,y,10,5);
+    // Body
+    ctx.fillStyle = n.type==='guard'?'#4a6a8a':n.type==='noble'?'#6a3a1a':'#5a4a2a';
+    ctx.fillRect(x-8,y-28,16,20);
+    // Head
+    ctx.fillStyle='#c8a878';
+    ctx.beginPath(); ctx.arc(x,y-34,9,0,Math.PI*2); ctx.fill();
+    // Name
+    ctx.fillStyle='rgba(200,170,100,0.7)';
+    ctx.font='9px Cinzel,serif';
+    ctx.textAlign='center';
+    ctx.fillText(n.name,x,y-46);
+    // Interact hint if close
+    const p=state.player;
+    const dist=Math.hypot(n.x-p.x,n.y-p.y);
+    if(dist<80){
+      ctx.fillStyle='rgba(255,255,255,0.5)';
+      ctx.font='11px Crimson Text, serif';
+      ctx.fillText('[E] Talk',x,y-56);
+    }
+  });
+}
+
+function drawLoot() {
+  state.loot.forEach(l=>{
+    if(l.picked) return;
+    const {x,y}=worldToScreen(l.x,l.y);
+    if(x<-20||x>W+20||y<-20||y>H+20) return;
+    const bob=Math.sin(state.time*20+l.x)*3;
+    const emojis={gold:'💰',potion:'🧪',gem:'💎'};
+    ctx.font='18px serif';
+    ctx.textAlign='center';
+    ctx.fillText(emojis[l.type],x,y-bob);
+  });
+}
+
+function drawEnemies() {
+  state.enemies.forEach(e=>{
+    if(e.hp<=0) return;
+    const {x,y}=worldToScreen(e.x,e.y);
+    if(x<-60||x>W+60||y<-80||y>H+60) return;
+    drawShadow(x,y,15,6);
+    // Sprite
+    const size = e.name==='DRAGON'?48:e.name==='FROST TROLL'?36:28;
+    ctx.font=`${size}px serif`;
+    ctx.textAlign='center';
+    // Aggro red tint
+    if(e.aggro){
+      ctx.shadowColor='rgba(255,0,0,0.5)';
+      ctx.shadowBlur=15;
+    }
+    ctx.fillText(e.emoji,x,y-size*0.3);
+    ctx.shadowBlur=0;
+    // HP bar
+    const bw=40;
+    ctx.fillStyle='rgba(0,0,0,0.6)';
+    ctx.fillRect(x-bw/2,y-size-14,bw,5);
+    ctx.fillStyle=e.hp/e.maxHp>0.5?'#e74c3c':e.hp/e.maxHp>0.25?'#f39c12':'#e74c3c';
+    ctx.fillRect(x-bw/2,y-size-14,bw*(e.hp/e.maxHp),5);
+    ctx.font='9px Cinzel,serif';
+    ctx.fillStyle='rgba(255,180,180,0.8)';
+    ctx.fillText(e.name,x,y-size-18);
+  });
+}
+
+function drawPlayer() {
+  const {x,y}=worldToScreen(state.player.x,state.player.y);
+  drawShadow(x,y,15,6);
+  // Draw player direction indicator
+  const angle = state.player.angle;
+  // Body
+  ctx.fillStyle='#8a6a2a';
+  ctx.fillRect(x-8,y-28,16,20);
+  // Cloak/Cape
+  ctx.fillStyle='#3a1a0a';
+  ctx.beginPath();
+  ctx.moveTo(x-10,y-26);
+  ctx.lineTo(x-14,y);
+  ctx.lineTo(x+14,y);
+  ctx.lineTo(x+10,y-26);
+  ctx.closePath(); ctx.fill();
+  // Head with helmet
+  ctx.fillStyle='#c8a878';
+  ctx.beginPath(); ctx.arc(x,y-34,9,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#6a6a7a';
+  ctx.fillRect(x-10,y-44,20,12);
+  // Sword
+  ctx.fillStyle='#aaaaaa';
+  ctx.save();
+  ctx.translate(x,y-20);
+  ctx.rotate(angle+0.5);
+  ctx.fillRect(0,-2,24,4);
+  ctx.fillStyle='#7a5a2a';
+  ctx.fillRect(-4,-3,6,6);
+  ctx.restore();
+  // Attack animation
+  if(state.player.attackTimer>0){
+    ctx.strokeStyle='rgba(200,170,100,0.6)';
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(x,y-15,25,angle-0.8,angle+0.8);
+    ctx.stroke();
+  }
+}
+
+function drawProjectiles() {
+  state.projectiles.forEach(p=>{
+    const {x,y}=worldToScreen(p.x,p.y);
+    if(p.type==='shout'){
+      ctx.fillStyle='rgba(100,180,255,0.8)';
+      ctx.shadowColor='rgba(100,180,255,1)';
+      ctx.shadowBlur=15;
+      ctx.beginPath();
+      ctx.arc(x,y,8,0,Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur=0;
+    } else if(p.type==='fireball'){
+      ctx.fillStyle='rgba(255,100,20,0.9)';
+      ctx.shadowColor='rgba(255,100,20,1)';
+      ctx.shadowBlur=20;
+      ctx.beginPath();
+      ctx.arc(x,y,10,0,Math.PI*2);
+      ctx.fill();
+      ctx.shadowBlur=0;
+    } else {
+      ctx.fillStyle='rgba(200,150,50,0.8)';
+      ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fill();
+    }
+  });
+}
+
+function drawParticles() {
+  state.particles = state.particles.filter(p=>p.life>0);
+  state.particles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    p.vy+=0.1;
+    p.life--;
+    const {x,y}=worldToScreen(p.x,p.y);
+    const alpha=p.life/p.maxLife;
+    ctx.fillStyle=p.color.replace(')',`,${alpha})`).replace('rgb','rgba');
+    ctx.beginPath();
+    ctx.arc(x,y,p.r*(0.5+alpha*0.5),0,Math.PI*2);
+    ctx.fill();
+  });
+}
+
+function spawnParticles(wx,wy,color,count,speed) {
+  for(let i=0;i<count;i++){
+    const a=Math.random()*Math.PI*2;
+    const s=speed*(0.5+Math.random()*0.5);
+    state.particles.push({
+      x:wx, y:wy,
+      vx:Math.cos(a)*s, vy:Math.sin(a)*s-speed*0.5,
+      color,
+      r:2+Math.random()*4,
+      life:20+Math.random()*20,
+      maxLife:40
+    });
+  }
+}
+
+function drawMinimap() {
+  const ms=160, mx=W-ms-12, my=H-ms-12;
+  const scale=30; // world units per minimap pixel
+  const cx=mx+ms/2, cy=my+ms/2;
+
+  // Background
+  ctx.save();
+  ctx.fillStyle='rgba(5,5,10,0.85)';
+  ctx.fillRect(mx,my,ms,ms);
+  ctx.strokeStyle='rgba(200,170,100,0.5)';
+  ctx.lineWidth=1;
+  ctx.strokeRect(mx,my,ms,ms);
+  // Clip to minimap bounds
+  ctx.beginPath(); ctx.rect(mx,my,ms,ms); ctx.clip();
+
+  // Draw roads
+  if(state.roads){
+    ctx.strokeStyle='rgba(180,160,100,0.25)';
+    ctx.lineWidth=1.5;
+    state.roads.forEach(rd=>{
+      const x1=cx+(rd.x1-state.player.x)/scale;
+      const y1=cy+(rd.y1-state.player.y)/scale;
+      const x2=cx+(rd.x2-state.player.x)/scale;
+      const y2=cy+(rd.y2-state.player.y)/scale;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+    });
+  }
+
+  // Draw region blobs
+  REGIONS.forEach(reg=>{
+    const rx=cx+(reg.x-state.player.x)/scale;
+    const ry=cy+(reg.y-state.player.y)/scale;
+    const rr=reg.radius/scale;
+    if(rx<mx-rr||rx>mx+ms+rr||ry<my-rr||ry>my+ms+rr) return;
+    const discovered=state.discoveredRegions && state.discoveredRegions.has(reg.name);
+    ctx.fillStyle=discovered?'rgba(40,60,30,0.5)':'rgba(20,20,20,0.3)';
+    ctx.beginPath(); ctx.arc(rx,ry,rr,0,Math.PI*2); ctx.fill();
+    // Region label for discovered
+    if(discovered && rr>8){
+      ctx.fillStyle='rgba(200,170,100,0.6)';
+      ctx.font='6px Cinzel,serif';
+      ctx.textAlign='center';
+      ctx.fillText(reg.name.split(' ')[0],rx,ry+2);
+    }
+  });
+
+  // Enemies
+  state.enemies.forEach(e=>{
+    if(e.hp<=0) return;
+    const ex=cx+(e.x-state.player.x)/scale;
+    const ey=cy+(e.y-state.player.y)/scale;
+    if(ex<mx||ex>mx+ms||ey<my||ey>my+ms) return;
+    ctx.fillStyle=e.aggro?'rgba(255,60,60,0.95)':'rgba(255,120,120,0.4)';
+    ctx.beginPath(); ctx.arc(ex,ey,e.name==='DRAGON'?4:2,0,Math.PI*2); ctx.fill();
+  });
+
+  // Loot
+  state.loot.forEach(l=>{
+    if(l.picked) return;
+    const lx=cx+(l.x-state.player.x)/scale;
+    const ly=cy+(l.y-state.player.y)/scale;
+    if(lx<mx||lx>mx+ms||ly<my||ly>my+ms) return;
+    ctx.fillStyle='rgba(200,170,100,0.7)';
+    ctx.beginPath(); ctx.arc(lx,ly,1.5,0,Math.PI*2); ctx.fill();
+  });
+
+  // NPCs as friendly dots
+  state.npcs.forEach(n=>{
+    const nx=cx+(n.x-state.player.x)/scale;
+    const ny=cy+(n.y-state.player.y)/scale;
+    if(nx<mx||nx>mx+ms||ny<my||ny>my+ms) return;
+    ctx.fillStyle='rgba(100,200,255,0.6)';
+    ctx.beginPath(); ctx.arc(nx,ny,2,0,Math.PI*2); ctx.fill();
+  });
+
+  // Player arrow
+  ctx.fillStyle='rgba(255,255,255,1)';
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(state.player.angle+Math.PI/2);
+  ctx.beginPath();
+  ctx.moveTo(0,-6); ctx.lineTo(-4,5); ctx.lineTo(4,5);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+
+  // Coords
+  ctx.fillStyle='rgba(200,170,100,0.45)';
+  ctx.font='7px Cinzel,serif';
+  ctx.textAlign='center';
+  ctx.fillText(Math.round(state.player.x)+', '+Math.round(state.player.y), mx+ms/2, my+ms-3);
+  // Discovered counter
+  const discCount = state.discoveredRegions ? state.discoveredRegions.size : 0;
+  ctx.fillStyle='rgba(200,170,100,0.45)';
+  ctx.textAlign='left';
+  ctx.fillText(discCount+'/'+REGIONS.length+' discovered', mx+4, my+10);
+
+  ctx.restore();
+}
+
+// ===== ACTIONS =====
+function doAttack(e) {
+  const p = state.player;
+  if(p.attackTimer>0) return;
+  if(p.stamina<10) return showMsg("Not enough stamina!");
+  p.attackTimer=20;
+  p.stamina=Math.max(0,p.stamina-10);
+  updateBars();
+
+  // Angle toward mouse
+  const dx=e.clientX-W/2, dy=e.clientY-H/2;
+  p.angle=Math.atan2(dy,dx);
+
+  // Check hit
+  let hit=false;
+  state.enemies.forEach(en=>{
+    if(en.hp<=0) return;
+    const sx=W/2+(en.x-p.x); const sy=H/2+(en.y-p.y);
+    const edx=sx-e.clientX; const edy=sy-e.clientY;
+    if(Math.hypot(edx,edy)<40){
+      const dmg=15+Math.random()*10|0;
+      en.hp-=dmg;
+      spawnParticles(en.x,en.y,'rgb(200,30,30)',8,3);
+      showFloatingText(en.x,en.y,`-${dmg}`,`rgba(255,80,80,0.9)`);
+      hit=true;
+      if(en.hp<=0){
+        onEnemyKill(en);
+      } else {
+        en.aggro=true;
+      }
+      updateEnemyHUD(en);
+    }
+  });
+  if(!hit) spawnParticles(p.x+Math.cos(p.angle)*30, p.y+Math.sin(p.angle)*30,'rgb(200,170,100)',4,2);
+}
+
+function doMagic(e) {
+  const p=state.player;
+  if(p.magicka<15) return showMsg("Not enough magicka!");
+  p.magicka-=15;
+  updateBars();
+  const dx=e.clientX-W/2; const dy=e.clientY-H/2;
+  const dist=Math.hypot(dx,dy);
+  state.projectiles.push({
+    x:p.x, y:p.y,
+    vx:(dx/dist)*8, vy:(dy/dist)*8,
+    type:'fireball', life:60, dmg:20
+  });
+  addNotif('⚡ Flames!');
+}
+
+function doShout() {
+  const p=state.player;
+  if(p.shoutCharge<100) return showMsg("FUS RO DAH not ready!");
+  p.shoutCharge=0;
+  document.getElementById('shoutFill').style.width='0%';
+  const dx=state.mouseX-W/2; const dy=state.mouseY-H/2;
+  const dist=Math.hypot(dx,dy)||1;
+  state.projectiles.push({
+    x:p.x, y:p.y,
+    vx:(dx/dist)*12, vy:(dy/dist)*12,
+    type:'shout', life:40, dmg:50
+  });
+  showMsg('FUS ROH DAH!');
+  addNotif('🌊 FUS RO DAH!');
+  // Screen shake
+  shakeScreen();
+}
+
+function shakeScreen(){
+  let t=0;
+  const interval=setInterval(()=>{
+    state.shakeX=(Math.random()-0.5)*12;
+    state.shakeY=(Math.random()-0.5)*12;
+    if(++t>10){ state.shakeX=0; state.shakeY=0; clearInterval(interval); }
+  },30);
+}
+
+function drinkPotion() {
+  const p=state.player;
+  if(p.health>=p.maxHealth) return showMsg("Already at full health.");
+  const idx=inventory.misc.findIndex(i=>i.startsWith('Health'));
+  if(idx===-1) return showMsg("No health potions!");
+  const count=parseInt(inventory.misc[idx].split('x')[1]);
+  if(count<=1) inventory.misc.splice(idx,1);
+  else inventory.misc[idx]='Health Potion x'+(count-1);
+  const heal=40;
+  p.health=Math.min(p.maxHealth,p.health+heal);
+  updateBars();
+  flashHeal();
+  spawnParticles(p.x,p.y,'rgb(30,200,80)',12,2);
+  addNotif(`❤ +${heal} Health`);
+}
+
+function interact() {
+  const p=state.player;
+  let found=false;
+  state.npcs.forEach(n=>{
+    if(Math.hypot(n.x-p.x,n.y-p.y)<80){
+      showMsg(n.dialogue, n.name);
+      found=true;
+    }
+  });
+  // Pick up loot
+  state.loot.forEach(l=>{
+    if(l.picked) return;
+    if(Math.hypot(l.x-p.x,l.y-p.y)<50){
+      l.picked=true;
+      if(l.type==='gold'){
+        p.gold=(p.gold||0)+l.value;
+        addNotif(`💰 +${l.value} Gold`);
+      } else if(l.type==='potion'){
+        inventory.misc.push('Health Potion x1');
+        addNotif('🧪 Found Health Potion');
+      } else {
+        addNotif(`💎 Found ${l.value}g gem`);
+      }
+      spawnParticles(l.x,l.y,'rgb(200,170,50)',8,2);
+      found=true;
+    }
+  });
+  if(!found) addNotif('Nothing nearby.');
+}
+
+function onEnemyKill(e) {
+  state.kills++;
+  addNotif(`☠ ${e.name} slain`);
+  const p=state.player;
+  const xpGain=e.xp;
+  p.xp+=xpGain;
+  addNotif(`✦ +${xpGain} XP`);
+  spawnParticles(e.x,e.y,'rgb(200,170,100)',16,4);
+  // Loot drop
+  state.loot.push({x:e.x+Math.random()*20-10,y:e.y+Math.random()*20-10,type:'gold',value:e.xp/2|0,picked:false});
+  if(p.xp>=p.xpNeeded) levelUp();
+  document.getElementById('enemyHUD').style.opacity='0';
+  updateEnemyHUD(null);
+  // Respawn if few enemies
+  if(state.enemies.filter(e=>e.hp>0).length<5) spawnEnemyWave();
+}
+
+function levelUp() {
+  const p=state.player;
+  p.level++;
+  p.xp-=p.xpNeeded;
+  p.xpNeeded=Math.floor(p.xpNeeded*1.4);
+  p.maxHealth+=10; p.health=p.maxHealth;
+  p.maxMagicka+=8; p.magicka=p.maxMagicka;
+  p.maxStamina+=8; p.stamina=p.maxStamina;
+  updateBars();
+  document.getElementById('levelNum').textContent=p.level;
+  showSkillUp();
+  addNotif(`⬆ LEVEL ${p.level}!`);
+}
+
+function updateEnemyHUD(e) {
+  const hud=document.getElementById('enemyHUD');
+  if(!e){return;}
+  hud.style.opacity='1';
+  document.getElementById('enemyName').textContent=e.name;
+  document.getElementById('enemyBarFill').style.width=(e.hp/e.maxHp*100)+'%';
+}
+
+function updateBars() {
+  const p=state.player;
+  document.getElementById('healthBar').style.width=(p.health/p.maxHealth*100)+'%';
+  document.getElementById('magickaBar').style.width=(p.magicka/p.maxMagicka*100)+'%';
+  document.getElementById('staminaBar').style.width=(p.stamina/p.maxStamina*100)+'%';
+  document.getElementById('shoutFill').style.width=(p.shoutCharge)+'%';
+}
+
+function flashDamage() {
+  const el=document.getElementById('damageFlash');
+  el.style.opacity='1';
+  setTimeout(()=>el.style.opacity='0',150);
+}
+function flashHeal() {
+  const el=document.getElementById('healFlash');
+  el.style.opacity='1';
+  setTimeout(()=>el.style.opacity='0',200);
+}
+
+function addNotif(msg) {
+  const el=document.getElementById('notifications');
+  const n=document.createElement('div');
+  n.className='notif'; n.textContent=msg;
+  el.appendChild(n);
+  setTimeout(()=>n.remove(),3200);
+}
+
+let msgTimeout;
+function showMsg(text, title='') {
+  const box=document.getElementById('msgBox');
+  if(title) document.getElementById('msgText').innerHTML=`<span class="msg-title">${title}</span>${text}`;
+  else document.getElementById('msgText').textContent=text;
+  box.style.opacity='1';
+  clearTimeout(msgTimeout);
+  msgTimeout=setTimeout(()=>box.style.opacity='0',3500);
+}
+
+function showSkillUp() {
+  const el=document.getElementById('skillUp');
+  el.textContent=`✦ LEVEL UP! ✦`;
+  el.style.opacity='1';
+  setTimeout(()=>el.style.opacity='0',3000);
+}
+
+const floatingTexts=[];
+function showFloatingText(wx,wy,text,color) {
+  floatingTexts.push({x:wx,y:wy,text,color,life:60,maxLife:60,vy:-1.5});
+}
+
+function drawFloatingTexts() {
+  for(let i=floatingTexts.length-1;i>=0;i--){
+    const ft=floatingTexts[i];
+    ft.y+=ft.vy;
+    ft.life--;
+    if(ft.life<=0){floatingTexts.splice(i,1);continue;}
+    const {x,y}=worldToScreen(ft.x,ft.y);
+    const alpha=ft.life/ft.maxLife;
+    ctx.fillStyle=ft.color.replace('rgba(','').replace(')','');
+    ctx.globalAlpha=alpha;
+    ctx.font='bold 16px Cinzel, serif';
+    ctx.textAlign='center';
+    ctx.fillText(ft.text,x,y);
+    ctx.globalAlpha=1;
+  }
+}
+
+// ===== ENEMY AI =====
+function updateEnemies() {
+  const p=state.player;
+  let closestEnemy=null, closestDist=Infinity;
+  state.enemies.forEach(e=>{
+    if(e.hp<=0) return;
+    const dx=p.x-e.x, dy=p.y-e.y;
+    const dist=Math.hypot(dx,dy);
+    if(dist<closestDist){closestDist=dist;closestEnemy=e;}
+    if(dist<250) e.aggro=true;
+    if(e.aggro && dist>20){
+      e.vx+=dx/dist*e.speed*0.1;
+      e.vy+=dy/dist*e.speed*0.1;
+      const spd=Math.hypot(e.vx,e.vy);
+      if(spd>e.speed){e.vx=e.vx/spd*e.speed;e.vy=e.vy/spd*e.speed;}
+    } else {e.vx*=0.9;e.vy*=0.9;}
+    e.x+=e.vx; e.y+=e.vy;
+    // Attack player
+    if(e.aggro && dist<e.range){
+      e.attackTimer=(e.attackTimer||0)+1;
+      if(e.attackTimer>60){
+        e.attackTimer=0;
+        const dmg=e.dmg+Math.random()*5|0;
+        p.health-=dmg;
+        updateBars();
+        flashDamage();
+        showFloatingText(0,0,`-${dmg}`,'rgba(255,80,80,0.9)');
+        if(p.health<=0){
+          p.health=0;
+          updateBars();
+          showMsg('You have died... Reload the page to begin again.','DOVAHKIIN FALLEN');
+        }
+      }
+    }
+  });
+  if(closestEnemy && closestDist<300) updateEnemyHUD(closestEnemy);
+  else document.getElementById('enemyHUD').style.opacity='0';
+}
+
+// ===== PROJECTILE UPDATE =====
+function updateProjectiles() {
+  state.projectiles=state.projectiles.filter(p=>p.life>0);
+  state.projectiles.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy;
+    p.life--;
+    // Check hits
+    state.enemies.forEach(e=>{
+      if(e.hp<=0) return;
+      if(Math.hypot(e.x-p.x,e.y-p.y)<25){
+        e.hp-=p.dmg;
+        spawnParticles(e.x,e.y,p.type==='fireball'?'rgb(255,100,20)':'rgb(100,180,255)',10,4);
+        showFloatingText(e.x,e.y,`-${p.dmg}`,p.type==='fireball'?'rgba(255,150,50,0.9)':'rgba(100,180,255,0.9)');
+        if(e.hp<=0) onEnemyKill(e);
+        else {e.aggro=true; updateEnemyHUD(e);}
+        p.life=0;
+      }
+    });
+  });
+}
+
+// ===== PLAYER MOVEMENT =====
+function updatePlayer() {
+  const p=state.player;
+  const k=state.keys;
+  let mx=0,my=0;
+  if(k['KeyW']||k['ArrowUp']) my-=1;
+  if(k['KeyS']||k['ArrowDown']) my+=1;
+  if(k['KeyA']||k['ArrowLeft']) mx-=1;
+  if(k['KeyD']||k['ArrowRight']) mx+=1;
+  const spd = k['ShiftLeft']?p.speed*2.2:p.speed;
+  if(mx||my){
+    const len=Math.hypot(mx,my);
+    p.x+=mx/len*spd;
+    p.y+=my/len*spd;
+    if(k['ShiftLeft']){
+      p.stamina=Math.max(0,p.stamina-0.3);
+      updateBars();
+    }
+  }
+  if(!k['ShiftLeft'] && p.stamina<p.maxStamina){ p.stamina=Math.min(p.maxStamina,p.stamina+0.15); updateBars(); }
+  if(p.magicka<p.maxMagicka){ p.magicka=Math.min(p.maxMagicka,p.magicka+0.05); updateBars(); }
+  if(p.shoutCharge<100){ p.shoutCharge=Math.min(100,p.shoutCharge+0.15); updateBars(); }
+  if(p.attackTimer>0) p.attackTimer--;
+  // Camera: snap to player so character stays centered
+  state.camera.x = state.player.x;
+  state.camera.y = state.player.y;
+  p.angle=Math.atan2(state.mouseY-H/2,state.mouseX-W/2);
+
+  // ── Region detection ──
+  let closestReg=null, closestDist=Infinity;
+  REGIONS.forEach(reg => {
+    const d = Math.hypot(p.x-reg.x, p.y-reg.y);
+    if(d < closestDist){ closestDist=d; closestReg=reg; }
+  });
+  if(closestReg && closestDist < closestReg.radius) {
+    if(state.currentLocation !== closestReg.name) {
+      state.currentLocation = closestReg.name;
+      state.currentLocationSub = closestReg.sub;
+      state.currentRegionObj = closestReg;
+      // Show location name
+      const loc=document.getElementById('locationName');
+      const sub=document.getElementById('locationSub');
+      const main=document.getElementById('locationMain');
+      if(main) main.textContent = closestReg.name;
+      sub.textContent = closestReg.sub;
+      loc.style.opacity='1';
+      setTimeout(()=>loc.style.opacity='0',3500);
+      // Discovery notification
+      if(!state.discoveredRegions.has(closestReg.name)){
+        state.discoveredRegions.add(closestReg.name);
+        addNotif('📍 Discovered: '+closestReg.name);
+        // XP for discovery
+        p.xp += 30;
+        addNotif('✦ +30 XP (Discovery)');
+        if(p.xp>=p.xpNeeded) levelUp();
+      }
+      updateBars();
+    }
+  } else if(closestDist >= (closestReg?.radius||350)) {
+    if(state.currentLocation !== 'WILDERNESS') {
+      state.currentLocation = 'WILDERNESS';
+      state.currentLocationSub = 'The Wilds of Skyrim';
+      const loc=document.getElementById('locationName');
+      const sub=document.getElementById('locationSub');
+      const main=document.getElementById('locationMain');
+      if(main) main.textContent = 'WILDERNESS';
+      sub.textContent = 'The Wilds of Skyrim';
+      loc.style.opacity='0.7';
+      setTimeout(()=>loc.style.opacity='0',2000);
+    }
+  }
+
+  // Auto pick up nearby loot
+  state.loot.forEach(l=>{
+    if(l.picked) return;
+    if(Math.hypot(l.x-p.x,l.y-p.y)<35){
+      l.picked=true;
+      if(l.type==='gold'){ p.gold=(p.gold||0)+l.value; addNotif('💰 +'+l.value+' Gold'); }
+      else if(l.type==='potion'){ inventory.misc.push('Health Potion x1'); addNotif('🧪 Found Potion'); }
+      else { addNotif('💎 Found '+l.value+'g gem'); }
+      spawnParticles(l.x,l.y,'rgb(200,170,50)',8,2);
+    }
+  });
+}
+
+// ===== COMPASS =====
+function updateCompass() {
+  // Angle from 0=right, convert player.angle to compass offset
+  const angle=state.player.angle;
+  const offset=(-angle/(Math.PI*2))*300;
+  document.getElementById('compassTicks').style.transform=`translateX(${offset%300}px)`;
+}
+
+// ===== MAIN LOOP =====
+function gameLoop() {
+  if(!state.running){requestAnimationFrame(gameLoop);return;}
+  state.time=(state.time+state.timeSpeed)%1;
+
+  ctx.clearRect(0,0,W,H);
+  drawSky();
+  drawGround();
+  drawRoads();
+  drawTrees();
+  drawRocks();
+  drawBuildings();
+  drawNPCs();
+  drawLoot();
+  drawProjectiles();
+  drawEnemies();
+  drawPlayer();
+  drawParticles();
+  drawFloatingTexts();
+  drawMinimap();
+
+  updatePlayer();
+  updateEnemies();
+  updateProjectiles();
+  updateCompass();
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ===== INVENTORY =====
+function toggleInventory() {
+  const panel=document.getElementById('inventoryPanel');
+  if(panel.classList.contains('open')) closeInventory();
+  else openInventory();
+}
+function openInventory(){
+  const panel=document.getElementById('inventoryPanel');
+  panel.classList.add('open');
+  renderInventory();
+  state.running=false;
+}
+function closeInventory(){
+  document.getElementById('inventoryPanel').classList.remove('open');
+  state.running=true;
+}
+function renderInventory(){
+  function renderSection(id,items,type){
+    const el=document.getElementById(id);
+    el.innerHTML='';
+    items.forEach(item=>{
+      const div=document.createElement('div');
+      div.className='inv-item'+(inventory.equipped[type]===item?' equipped':'');
+      const emojis={'Iron Sword':'⚔️','Iron Shield':'🛡️','Leather Armor':'🥋','Iron Helmet':'⛑️','Health Potion x3':'🧪','Stamina Potion x2':'⚡','Dragon Scales x1':'🐉'};
+      div.innerHTML=`${emojis[item]||'📦'} ${item}`;
+      if(type==='weapon'||type==='armor'){
+        div.onclick=()=>{inventory.equipped[type]=item;renderInventory();addNotif(`Equipped: ${item}`);}
+      }
+      el.appendChild(div);
+    });
+  }
+  renderSection('invWeapons',inventory.weapons,'weapon');
+  renderSection('invArmor',inventory.armor,'armor');
+  const miscEl=document.getElementById('invMisc');
+  miscEl.innerHTML='';
+  inventory.misc.forEach(item=>{
+    const div=document.createElement('div');
+    div.className='inv-item';
+    div.innerHTML=`📦 ${item}`;
+    miscEl.appendChild(div);
+  });
+}
+
+// ===== START GAME =====
+function startGame() {
+  document.getElementById('titleScreen').style.display='none';
+  genWorld();
+  state.running=true;
+  // Show location name
+  const loc=document.getElementById('locationName');
+  loc.style.opacity='1';
+  setTimeout(()=>loc.style.opacity='0',3000);
+  showMsg("You are the Dragonborn. WASD to move, Shift to sprint. Explore Skyrim — 12 regions await. Walk to discover new holds, cities and ruins.", "BEGIN YOUR JOURNEY");
+  gameLoop();
+}
+
+window.addEventListener('resize',()=>{
+  W=canvas.width=window.innerWidth;
+  H=canvas.height=window.innerHeight;
+  titleCanvas.width=window.innerWidth;
+  titleCanvas.height=window.innerHeight;
+});
+</script>
+</body>
+</html>
