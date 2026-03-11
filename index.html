@@ -93,6 +93,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;display:flex;ali
 .game-card[data-id="poppy"]{--card-color:#e84393;--card-shadow:rgba(232,67,147,0.12)}
 .game-card[data-id="minecraft"]{--card-color:#7ec850;--card-shadow:rgba(126,200,80,0.11)}
 .game-card[data-id="robbies"]{--card-color:#ff6b9d;--card-shadow:rgba(255,107,157,0.12)}
+.game-card[data-id="rdr2"]{--card-color:#c9a84c;--card-shadow:rgba(201,168,76,0.12)}
 .badge-new{background:rgba(240,165,0,0.15)!important;color:var(--gold)!important;border-color:var(--gold)!important;animation:badgePulse 2s ease-in-out infinite}
 @keyframes badgePulse{0%,100%{box-shadow:0 0 0 0 rgba(240,165,0,0.4)}50%{box-shadow:0 0 8px 2px rgba(240,165,0,0.2)}}
 .card-art{position:relative;height:220px;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -112,6 +113,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:500;height:60px;display:flex;ali
 .card-art[data-id="poppy"]{background:radial-gradient(ellipse at 50% 35%,rgba(232,67,147,0.11) 0%,transparent 55%),radial-gradient(ellipse at 25% 80%,rgba(26,74,191,0.1) 0%,transparent 55%),#0a080f}
 .card-art[data-id="minecraft"]{background:radial-gradient(ellipse at 50% 35%,rgba(126,200,80,0.1) 0%,transparent 55%),radial-gradient(ellipse at 70% 80%,rgba(42,80,16,0.15) 0%,transparent 55%),#050a03}
 .card-art[data-id="robbies"]{background:radial-gradient(ellipse at 50% 30%,rgba(255,107,157,0.18) 0%,transparent 55%),radial-gradient(ellipse at 75% 75%,rgba(255,217,61,0.12) 0%,transparent 55%),#140a10}
+.card-art[data-id="rdr2"]{background:radial-gradient(ellipse at 50% 30%,rgba(201,168,76,0.15) 0%,transparent 55%),radial-gradient(ellipse at 20% 80%,rgba(139,32,32,0.18) 0%,transparent 55%),#0d0a07}
 .art-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px);background-size:28px 28px}
 .art-icon{font-size:80px;position:relative;z-index:2;opacity:0.75;filter:drop-shadow(0 0 28px var(--card-color));transition:all 0.4s cubic-bezier(.2,.8,.2,1)}
 .game-card:hover .art-icon{opacity:1;transform:scale(1.12) translateY(-4px)}
@@ -160,7 +162,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <li><a href="#features">Features</a></li>
 
   </ul>
-  <div class="nav-live"><div class="live-dot"></div>16 GAMES LIVE</div>
+  <div class="nav-live"><div class="live-dot"></div>17 GAMES LIVE</div>
 </nav>
 
 <section id="hero">
@@ -174,7 +176,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <a href="r6siege.html" class="btn-ghost">Play R6 Siege →</a>
   </div>
   <div class="hero-stats">
-    <div class="stat"><div class="stat-n">16</div><div class="stat-l">Games</div></div>
+    <div class="stat"><div class="stat-n">17</div><div class="stat-l">Games</div></div>
     <div class="stat"><div class="stat-n">∞</div><div class="stat-l">Free Plays</div></div>
     <div class="stat"><div class="stat-n">0</div><div class="stat-l">Downloads</div></div>
   </div>
@@ -467,7 +469,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
       <div class="card-art" data-id="robbies">
         <div class="art-grid"></div>
         <div class="art-icon">🐱</div>
-        <div class="art-badge badge-new">NEW</div>
+        <div class="art-badge">PARTY</div>
         <div class="art-players">🎮 Single Player</div>
       </div>
       <div class="card-body">
@@ -476,6 +478,22 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
         <div class="card-desc">A target Robbie appears — find the matching cat in the grid before time runs out! Score big by being fast. 5 rounds, 30 seconds each. How many Robbies can you spot?</div>
         <div class="card-tags"><span class="tag">Puzzle</span><span class="tag">Speed</span><span class="tag">Cats</span><span class="tag">Fun</span></div>
         <div class="card-footer"><span class="card-play">▶ Play Now</span><span class="card-stars">★★★★☆</span></div>
+      </div>
+    </a>
+
+    <a class="game-card" data-id="rdr2" data-name="Red Dead Redemption II" data-added="17" data-genre="rpg" href="rdr2-game.html">
+      <div class="card-art" data-id="rdr2">
+        <div class="art-grid"></div>
+        <div class="art-icon">🤠</div>
+        <div class="art-badge badge-new">NEW</div>
+        <div class="art-players">🎮 Single Player</div>
+      </div>
+      <div class="card-body">
+        <div class="card-genre">Western RPG</div>
+        <div class="card-name">RED DEAD REDEMPTION II</div>
+        <div class="card-desc">Ride with the Van der Linde gang as Arthur Morgan. Rob stagecoaches, hunt bounties, face the Pinkertons — every choice shapes your honor and your fate in the dying West.</div>
+        <div class="card-tags"><span class="tag">RPG</span><span class="tag">Western</span><span class="tag">Story</span><span class="tag">Choices</span></div>
+        <div class="card-footer"><span class="card-play">▶ Play Now</span><span class="card-stars">★★★★★</span></div>
       </div>
     </a>
 
@@ -521,6 +539,7 @@ footer{position:relative;z-index:10;padding:52px 48px;border-top:1px solid var(-
     <a href="poppy-playtime.html">Poppy Playtime Ch.1-5</a>
     <a href="minecraft2d.html">2D Minecraft</a>
     <a href="robbies.html">Find the Robbies</a>
+    <a href="rdr2-game.html">Red Dead Redemption II</a>
   </div>
   <div class="foot-copy">Free · Browser-Based · No Downloads</div>
 </footer>
