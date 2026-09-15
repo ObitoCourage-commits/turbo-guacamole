@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NEON BREACH · Chrome Delta Incident</title>
+<style>
+  :root {
+    --bg: #05070d; --cyan: #00fff2; --magenta: #ff2e88; --amber: #ffb000; --purple: #9b5cff;
+    --ink: #c9d1e0; --dim: #4a5568;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; width:100%; background:var(--bg); overflow:hidden; font-family:'Courier New','JetBrains Mono',monospace; }
+  #wrap { position:relative; width:100vw; height:100vh; transition:filter 0.05s linear; }
+  #wrap.glitch { filter:hue-rotate(30deg) saturate(2) contrast(1.3); animation:shake 0.15s linear; }
+  @keyframes shake { 0%{transform:translate(0,0);} 30%{transform:translate(-3px,2px);} 60%{transform:translate(3px,-2px);} 100%{transform:translate(0,0);} }
+  canvas { display:block; width:100%; height:100%; background:var(--bg); }
+  #scanlines { position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(to bottom, rgba(255,255,255,0.025) 0px, rgba(255,255,255,0.025) 1px, transparent 2px, transparent 3px); mix-blend-mode:overlay; z-index:4; }
+  #vignetteEdge { position:absolute; inset:0; pointer-events:none; box-shadow:inset 0 0 140px rgba(0,0,0,0.65); z-index:4; }
+  #hud { position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:flex-start; padding:18px 22px; pointer-events:none; z-index:5; }
+  .hud-block { color:var(--ink); font-size:12px; letter-spacing:0.08em; line-height:1.6; text-shadow:0 0 8px rgba(0,255,242,0.25); }
+  .hud-label { color:var(--dim); font-size:10px; }
+  .hud-value { font-size:16px; font-weight:bold; }
+  .bar-track { width:140px; height:6px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); margin-top:3px; position:relative; }
+  .bar-fill { height:100%; transition:width 0.15s linear; }
+  #title-block { text-align:right; }
+  #logo { font-size:22px; font-weight:900; letter-spacing:0.15em; color:var(--cyan); text-shadow:0 0 12px var(--cyan), 0 0 2px #fff; }
+  #logo span { color:var(--magenta); text-shadow:0 0 12px var(--magenta); }
+  #tagline { font-size:9px; color:var(--amber); letter-spacing:0.2em; margin-top:2px; text-shadow:0 0 6px var(--amber); }
+  #objectiveLine { font-size:10.5px; color:var(--ink); margin-top:8px; max-width:220px; line-height:1.4; }
+  #comm { position:absolute; left:20px; bottom:20px; max-width:340px; background:rgba(5,10,18,0.82); border-left:3px solid var(--cyan); padding:10px 14px; color:var(--ink); font-size:12.5px; line-height:1.5; letter-spacing:0.02em; z-index:6; opacity:0; transform:translateY(8px); transition:opacity 0.3s ease, transform 0.3s ease; pointer-events:none; }
+  #comm.show { opacity:1; transform:translateY(0); }
+  #comm .speaker { display:block; font-size:10px; letter-spacing:0.18em; font-weight:bold; margin-bottom:4px; }
+  #comm.echo .speaker { color:var(--cyan); }
+  #comm.juniper .speaker { color:var(--magenta); }
+  #minimap { position:absolute; right:20px; bottom:20px; z-index:6; border:1px solid rgba(0,255,242,0.35); background:rgba(5,10,18,0.7); box-shadow:0 0 12px rgba(0,255,242,0.1); }
+  #minimapLabel { position:absolute; right:20px; bottom:132px; z-index:6; color:var(--dim); font-size:9px; letter-spacing:0.22em; }
+  #overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; background:rgba(5,7,13,0.92); z-index:10; text-align:center; padding:20px; overflow-y:auto; }
+  #overlay .eyebrow { color:var(--dim); font-size:11px; letter-spacing:0.25em; margin-bottom:10px; }
+  #overlay h1 { font-size:clamp(24px, 5.5vw, 46px); letter-spacing:0.1em; color:var(--cyan); text-shadow:0 0 20px var(--cyan); margin:0 0 14px 0; font-weight:900; }
+  #overlay h1 span { color:var(--magenta); text-shadow:0 0 20px var(--magenta); }
+  #overlay p { color:var(--ink); max-width:480px; line-height:1.75; font-size:13.5px; letter-spacing:0.02em; margin:0 0 10px 0; }
+  #overlay .stat { color:var(--amber); font-size:14px; margin:10px 0 4px 0; }
+  .key { display:inline-block; border:1px solid var(--dim); padding:1px 7px; border-radius:3px; color:var(--ink); margin:0 2px; font-size:12px; }
+  #actionBtn { margin-top:22px; background:transparent; border:2px solid var(--cyan); color:var(--cyan); padding:12px 34px; font-size:14px; letter-spacing:0.15em; font-family:inherit; font-weight:bold; cursor:pointer; text-shadow:0 0 8px var(--cyan); box-shadow:0 0 16px rgba(0,255,242,0.15) inset; transition:all 0.15s ease; }
+  #actionBtn:hover { background:var(--cyan); color:var(--bg); text-shadow:none; }
+  #actionBtn.magenta { border-color:var(--magenta); color:var(--magenta); text-shadow:0 0 8px var(--magenta); }
+  #actionBtn.magenta:hover { background:var(--magenta); color:var(--bg); text-shadow:none; }
+  #progressDots { margin-top:16px; display:flex; gap:6px; }
+  .dot { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.15); }
+  .dot.active { background:var(--cyan); box-shadow:0 0 6px var(--cyan); }
+  .flicker { animation:flicker 3s infinite; }
+  @keyframes flicker { 0%,91%,93%,100%{opacity:1;} 92%{opacity:0.4;} }
+  #missionCards { display:none; flex-direction:column; gap:12px; margin-top:8px; width:100%; max-width:440px; }
+  .mission-card { text-align:left; background:rgba(255,255,255,0.03); border-left:3px solid var(--cyan); padding:12px 16px; cursor:pointer; transition:background 0.15s ease, transform 0.15s ease; }
+  .mission-card:hover { background:rgba(255,255,255,0.07); transform:translateX(3px); }
+  .mission-card .m-name { font-size:15px; font-weight:bold; letter-spacing:0.08em; }
+  .mission-card .m-tag { font-size:9px; color:var(--dim); letter-spacing:0.18em; margin-bottom:5px; }
+  .mission-card .m-desc { font-size:11.5px; color:var(--ink); line-height:1.5; margin-top:5px; }
+  #touchControls { position:absolute; bottom:0; left:0; right:0; display:none; justify-content:space-between; padding:18px; z-index:6; pointer-events:none; }
+  #joyZone, #empBtnTouch { pointer-events:auto; }
+  #joyZone { width:120px; height:120px; border-radius:50%; border:1px solid rgba(0,255,242,0.25); background:rgba(0,255,242,0.04); position:relative; touch-action:none; }
+  #joyStick { width:46px; height:46px; border-radius:50%; background:rgba(0,255,242,0.35); border:1px solid var(--cyan); position:absolute; left:37px; top:37px; pointer-events:none; }
+  #empBtnTouch { width:78px; height:78px; border-radius:50%; border:2px solid var(--magenta); background:rgba(255,46,136,0.08); color:var(--magenta); font-size:11px; letter-spacing:0.08em; font-weight:bold; align-self:flex-end; touch-action:none; }
+  @media (max-width:760px), (hover:none) {
+    #touchControls { display:flex; }
+    #comm { max-width:78vw; font-size:11.5px; bottom:150px; }
+    #minimap { width:110px !important; height:72px !important; bottom:150px; }
+    #minimapLabel { bottom:226px; }
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game"></canvas>
+  <div id="scanlines"></div>
+  <div id="vignetteEdge"></div>
+
+  <div id="hud">
+    <div class="hud-block">
+      <div class="hud-label">INTEGRITY</div>
+      <div class="bar-track"><div class="bar-fill" id="healthFill" style="width:100%; background:var(--cyan); box-shadow:0 0 8px var(--cyan);"></div></div>
+      <div class="hud-label" style="margin-top:8px;">ICE HEAT</div>
+      <div class="bar-track"><div class="bar-fill" id="heatFill" style="width:0%; background:var(--magenta); box-shadow:0 0 8px var(--magenta);"></div></div>
+      <div class="hud-label" style="margin-top:8px;">EMP CHARGE</div>
+      <div class="bar-track"><div class="bar-fill" id="empFill" style="width:100%; background:var(--amber); box-shadow:0 0 8px var(--amber);"></div></div>
+    </div>
+    <div class="hud-block" id="title-block">
+      <div id="logo">NEON<span>BREACH</span></div>
+      <div id="tagline">MARKET ROW</div>
+      <div style="margin-top:8px;" class="hud-label">DATA FRAGMENTS</div>
+      <div class="hud-value" id="scoreVal" style="color:var(--amber); text-shadow:0 0 8px var(--amber);">0</div>
+      <div id="objectiveLine"></div>
+    </div>
+  </div>
+
+  <div id="comm"><span class="speaker" id="commSpeaker">ECHO</span><span id="commText"></span></div>
+  <div id="minimapLabel">CHROME DELTA · GRID MAP</div>
+  <canvas id="minimap" width="170" height="110"></canvas>
+
+  <div id="overlay">
+    <div class="eyebrow" id="ovEyebrow">CHROME DELTA · 04:12 AM · RAIN</div>
+    <h1 id="ovTitle">NEON<span>BREACH</span></h1>
+    <p id="ovText"></p>
+    <div class="stat" id="ovStat" style="display:none;"></div>
+    <div id="progressDots" style="display:none;">
+      <div class="dot" id="dot0"></div><div class="dot" id="dot1"></div><div class="dot" id="dot2"></div>
+    </div>
+    <div id="missionCards"></div>
+    <button id="actionBtn" class="flicker">CONTINUE</button>
+  </div>
+
+  <div id="touchControls">
+    <div id="joyZone"><div id="joyStick"></div></div>
+    <button id="empBtnTouch">EMP</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const mmCanvas = document.getElementById('minimap');
+  const mmCtx = mmCanvas.getContext('2d');
+  let W, H, DPR;
+
+  const WORLD_W = 2800, WORLD_H = 1800;
+  const camera = { x:0, y:0 };
+
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W*DPR; canvas.height = H*DPR;
+    canvas.style.width = W+'px'; canvas.style.height = H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    const mmCss = window.innerWidth <= 760 ? 110 : 170;
+    const mmCssH = window.innerWidth <= 760 ? 72 : 110;
+    mmCanvas.width = mmCss*DPR; mmCanvas.height = mmCssH*DPR;
+    mmCanvas.style.width = mmCss+'px'; mmCanvas.style.height = mmCssH+'px';
+    mmCtx.setTransform(DPR,0,0,DPR,0,0);
+  }
+  window.addEventListener('resize', resize);
+
+  // ---------- Story & missions ----------
+  const STORY_INTRO = [
+    { eyebrow:"CHROME DELTA · 04:12 AM · RAIN", title:'NEON<span>BREACH</span>',
+      body:"The megatower of Helix-Meridian owns the sky over Chrome Delta. Everyone under the rain line owes it rent, medical debt, or worse. You used to be one of their netrunners \u2014 until you saw what was really running in Sub-Level 9.",
+      btn:"CONTINUE" },
+    { eyebrow:"SECURE CHANNEL · INCOMING", title:'CALL SIGN: <span>WISP</span>',
+      body:"A fixer named Juniper found you a way back in. She runs jobs against Helix-Meridian from a burner uplink \u2014 and she's got more than one way to hurt them tonight.",
+      btn:"CONTINUE" },
+    { eyebrow:"UPLINK READY", title:'JACK <span>IN</span>',
+      body:"Your scout drone ECHO calls out threats and story as you run. The grid spans three districts \u2014 Market Row, Helix Plaza, and the Undercity. Pick a contract to get started.",
+      controls:true, btn:"VIEW CONTRACTS" }
+  ];
+
+  const MISSIONS = [
+    { id:'heist', name:'GHOST RUN', tag:'DATA HEIST · OPEN-ENDED', color:'var(--cyan)',
+      desc:"Sweep the grid for data fragments on Sub-Level 9. No fixed end \u2014 push your score as far as you can before the ICE catches up to you." },
+    { id:'sabotage', name:'BLACKOUT', tag:'TURRET SABOTAGE · 2:00', color:'var(--amber)',
+      desc:"Hack 6 Helix sentry turrets with EMP bursts before the district goes to full lockdown. Turrets are seeded all over the map \u2014 you'll need to cross districts." },
+    { id:'escort', name:'COURIER', tag:'ESCORT · PROTECT THE RUNNER', color:'var(--magenta)',
+      desc:"A courier drone is crossing hostile territory with a copy of the Sub-Level 9 files. Clear its path and keep it alive to the extraction point." }
+  ];
+
+  const COMM_QUEUE_BY_TIME = [ { t:2.0, speaker:'echo', text:"Uplink's clean. I've got a window before Helix notices the intrusion \u2014 move." } ];
+  const COMM_QUEUE_BY_SCORE = [
+    { score:30, speaker:'juniper', text:"First fragment's decrypting. Timestamps match Sub-Level 9. Keep pulling threads." },
+    { score:90, speaker:'echo', text:"Heat's climbing \u2014 ICE is routing more units your way. Watch the turrets, they don't wobble." },
+    { score:180, speaker:'juniper', text:"Confirmed. These are consent forms nobody signed. Vault core's rattled \u2014 head for the Plaza, there's a core fragment worth grabbing." },
+    { score:300, speaker:'echo', text:"Vault's cracking open. One more good haul and this dump goes out on every public feed in the sector." }
+  ];
+  function heistEnding(score){
+    if (score >= 300) return { title:'GHOST <span>PROTOCOL</span>', body:"The data hits every public terminal in Chrome Delta before Helix can pull the plug. By morning the undercity knows exactly what Sub-Level 9 was. Juniper sends one line: \"Paid in full. Don't come back the same way twice.\"" };
+    if (score >= 140) return { title:'PARTIAL <span>BREACH</span>', body:"You got out with enough to make Helix's legal department sweat, not enough to bring the tower down. Juniper says it's a start." };
+    return { title:'SIGNAL <span>LOST</span>', body:"The ICE closes the loop before you can pull anything worth the risk. Juniper's voice is tight over the line: \"You're alive. That's the only win tonight.\"" };
+  }
+  const MISSION_OUTCOMES = {
+    sabotage: {
+      win: { title:'GRID <span>DARKENED</span>', body:"Six sentries drop off Helix's network in the same second. For a few minutes, that whole block of Chrome Delta goes dark and deaf. Juniper's already moving \u2014 says it's the biggest opening they'll get all month." },
+      lose: { title:'LOCKDOWN', body:"The block reboots before you finish the job. Sentries come back online one by one, and the window closes. Juniper: \"We'll find another seam. Get clear.\"" }
+    },
+    escort: {
+      win: { title:'SAFE <span>PASSAGE</span>', body:"The courier slips through the extraction point with its cargo intact \u2014 a full copy of the Sub-Level 9 files, sourced from someone still working inside Helix. Juniper doesn't usually sound relieved. Tonight she does." },
+      lose: { title:'CARGO <span>LOST</span>', body:"The courier goes down blocks short of extraction. Whatever it was carrying is gone, and so is the source who risked everything to send it. Juniper goes quiet before she says, \"We regroup.\"" }
+    }
+  };
+
+  // ---------- World / districts ----------
+  const DISTRICTS = [
+    { x0:0, x1:WORLD_W/3, name:'MARKET ROW', tint:'rgba(255,176,0,0.05)', mmTint:'rgba(255,176,0,0.5)', building:'#241a0c', trim:'#ffb000' },
+    { x0:WORLD_W/3, x1:2*WORLD_W/3, name:'HELIX PLAZA', tint:'rgba(0,255,242,0.05)', mmTint:'rgba(0,255,242,0.5)', building:'#0c1c24', trim:'#00fff2' },
+    { x0:2*WORLD_W/3, x1:WORLD_W, name:'UNDERCITY', tint:'rgba(155,92,255,0.06)', mmTint:'rgba(155,92,255,0.5)', building:'#1c0c22', trim:'#9b5cff' }
+  ];
+  function districtAt(x){ for (const d of DISTRICTS) if (x>=d.x0 && x<d.x1) return d; return DISTRICTS[1]; }
+  const VAULT = { x:WORLD_W*0.5, y:WORLD_H*0.32, w:130, h:210 };
+  const COURIER_PATH = [ {x:WORLD_W*0.12,y:WORLD_H*0.55}, {x:WORLD_W*0.5,y:WORLD_H*0.8}, {x:WORLD_W*0.88,y:WORLD_H*0.5} ];
+  let buildings = [];
+
+  function rand(a,b){ return a + Math.random()*(b-a); }
+  function dist(x1,y1,x2,y2){ return Math.hypot(x1-x2,y1-y2); }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b,v)); }
+  function mmss(t){ t=Math.max(0,t); const m=Math.floor(t/60), s=Math.floor(t%60); return m+':'+(s<10?'0':'')+s; }
+
+  function buildWorld(){
+    buildings = [];
+    const cell = 230;
+    for (let gx=0; gx<WORLD_W; gx+=cell){
+      for (let gy=0; gy<WORLD_H; gy+=cell){
+        const cxCenter=gx+cell/2, cyCenter=gy+cell/2;
+        if (dist(cxCenter,cyCenter, WORLD_W/2, WORLD_H*0.62) < 220) continue;
+        if (dist(cxCenter,cyCenter, WORLD_W*0.12, WORLD_H*0.55) < 180) continue;
+        if (cxCenter > VAULT.x-180 && cxCenter < VAULT.x+180 && cyCenter > VAULT.y-100 && cyCenter < VAULT.y+260) continue;
+        if (Math.random() < 0.32) continue;
+        const d = districtAt(cxCenter);
+        const w = rand(90, cell-70), h = rand(70, cell-70);
+        buildings.push({ x:gx+rand(15,cell-w-15), y:gy+rand(15,cell-h-15), w, h, color:d.building, trim:d.trim, windows:Math.floor(rand(3,9)) });
+      }
+    }
+  }
+  function insideAnyBuilding(x,y,pad){
+    for (const b of buildings) if (x>b.x-pad && x<b.x+b.w+pad && y>b.y-pad && y<b.y+b.h+pad) return true;
+    return false;
+  }
+  function randomWorldPos(minDistFromPlayer, avoidBuildings){
+    let x,y,tries=0;
+    do { x=rand(70,WORLD_W-70); y=rand(70,WORLD_H-70); tries++; }
+    while (tries<25 && (dist(x,y,player.x,player.y) < minDistFromPlayer || (avoidBuildings && insideAnyBuilding(x,y,30))));
+    return {x,y};
+  }
+
+  // ---------- State ----------
+  const keys = {};
+  let running = false;
+  let best = 0;
+  let introStep = 0;
+  let overlayMode = 'intro'; // intro | missionSelect | gameover
+  let missionType = 'heist';
+  let missionTimer = 0, hackedCount = 0, missionResult = null;
+
+  const player = { x:0, y:0, vx:0, vy:0, r:11, health:100, angle:0, empCharge:100, invuln:0 };
+  let drones=[], turrets=[], bullets=[], shards=[], particles=[], raindrops=[];
+  let courier = null;
+  let empRing = null;
+  let score = 0, heat = 0, elapsed = 0;
+  let spawnTimer=0, turretSpawnTimer=0, shardTimer=0, coreShardTimer=0;
+  let vaultCoreActive = false;
+  let commQueue=[], commTimer=0, commShownIdx={time:0,score:0};
+  let currentDistrictName = '';
+
+  function courierRouteProgress(){
+    if (!courier) return 0;
+    const totalSegs = COURIER_PATH.length - 1;
+    const segStart = COURIER_PATH[courier.wpIndex-1];
+    const segEnd = COURIER_PATH[courier.wpIndex];
+    const segLen = dist(segStart.x,segStart.y,segEnd.x,segEnd.y);
+    const remain = dist(courier.x,courier.y,segEnd.x,segEnd.y);
+    const segFrac = segLen>0 ? clamp(1-remain/segLen,0,1) : 1;
+    const progress = ((courier.wpIndex-1) + segFrac) / totalSegs;
+    return Math.round(progress*100);
+  }
+
+  function threatTarget(ex,ey){
+    if (missionType==='escort' && courier && courier.alive){
+      const dp = dist(ex,ey,player.x,player.y);
+      const dc = dist(ex,ey,courier.x,courier.y);
+      return dc < dp ? courier : player;
+    }
+    return player;
+  }
+
+  function reset(){
+    const startPos = missionType==='escort' ? {x:WORLD_W*0.12, y:WORLD_H*0.5} : {x:WORLD_W/2, y:WORLD_H*0.62};
+    player.x=startPos.x; player.y=startPos.y; player.vx=0; player.vy=0;
+    player.health=100; player.empCharge=100; player.invuln=1.2;
+    drones=[]; turrets=[]; bullets=[]; shards=[]; particles=[];
+    score=0; heat=0; elapsed=0; spawnTimer=0; turretSpawnTimer=0; shardTimer=0; coreShardTimer=0;
+    vaultCoreActive=false; empRing=null;
+    commQueue=[]; commTimer=0; commShownIdx={time:0,score:0};
+    missionTimer = 120; hackedCount = 0; missionResult = null;
+    raindrops=[];
+    for (let i=0;i<70;i++) raindrops.push({x:rand(0,W||window.innerWidth), y:rand(0,H||window.innerHeight), len:rand(8,18), speed:rand(400,700)});
+    for (let i=0;i<6;i++){ const p=randomWorldPos(150,true); shards.push({x:p.x,y:p.y,pulse:rand(0,Math.PI*2)}); }
+    const turretCount = missionType==='sabotage' ? 7 : (missionType==='escort' ? 4 : 3);
+    for (let i=0;i<turretCount;i++){ const p=randomWorldPos(450,true); turrets.push({x:p.x,y:p.y,cooldown:rand(0.5,1.5),stunned:0,aim:0,hacked:false}); }
+
+    if (missionType==='escort'){
+      courier = { x:COURIER_PATH[0].x, y:COURIER_PATH[0].y, r:9, health:100, alive:true, wpIndex:1, speed:52, angle:0 };
+    } else courier = null;
+
+    let introMsg = "Sweep pattern's yours, WISP. Grab everything you can before they lock us out.";
+    if (missionType==='sabotage') introMsg = "Six sentries between us and blackout. EMP burst hacks anything caught in range \u2014 make it count.";
+    if (missionType==='escort') introMsg = "Our courier's inbound with the source files. Keep it alive to the extraction marker east side.";
+    queueComm('echo', introMsg);
+  }
+
+  function spawnDrone(){
+    const p = randomWorldPos(500,false);
+    drones.push({ x:p.x, y:p.y, r:12, speed:rand(50,90)+heat*30, wobble:rand(0,Math.PI*2), stunned:0, legPhase:rand(0,10) });
+  }
+  function spawnTurret(){ const p=randomWorldPos(450,true); turrets.push({x:p.x,y:p.y,cooldown:rand(0.5,1.5),stunned:0,aim:0,hacked:false}); }
+  function spawnShard(){ const p=randomWorldPos(120,true); shards.push({x:p.x,y:p.y,pulse:rand(0,Math.PI*2)}); }
+  function spawnCoreShard(){
+    const a=rand(0,Math.PI*2), r=rand(40,140);
+    shards.push({ x:VAULT.x+Math.cos(a)*r, y:VAULT.y+150+Math.sin(a)*r, pulse:rand(0,Math.PI*2), core:true });
+  }
+  function addParticles(x,y,color,n){
+    for (let i=0;i<n;i++){ const a=rand(0,Math.PI*2), s=rand(30,140); particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(0.3,0.7),color,t:0}); }
+  }
+  function triggerGlitch(){ const wrap=document.getElementById('wrap'); wrap.classList.add('glitch'); setTimeout(()=>wrap.classList.remove('glitch'),150); }
+
+  // ---------- Comm ----------
+  const commEl=document.getElementById('comm'), commSpeakerEl=document.getElementById('commSpeaker'), commTextEl=document.getElementById('commText');
+  function queueComm(speaker,text){ commQueue.push({speaker,text}); }
+  let commActive=false, commHideTimer=0;
+  function processComm(dt){
+    if (!commActive && commQueue.length && commTimer<=0){
+      const msg=commQueue.shift();
+      commSpeakerEl.textContent=msg.speaker.toUpperCase(); commTextEl.textContent=msg.text; commEl.className=msg.speaker;
+      requestAnimationFrame(()=>commEl.classList.add('show'));
+      commActive=true; commHideTimer=4.6;
+    }
+    if (commActive){ commHideTimer-=dt; if (commHideTimer<=0){ commEl.classList.remove('show'); commActive=false; commTimer=0.8; } }
+    if (commTimer>0) commTimer-=dt;
+  }
+
+  // ---------- Input ----------
+  window.addEventListener('keydown', e=>{ keys[e.code]=true; if (e.code==='Space'){ e.preventDefault(); tryEmp(); } });
+  window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+  let joyActive=false, joyVec={x:0,y:0};
+  const joyZone=document.getElementById('joyZone'), joyStick=document.getElementById('joyStick');
+  function joyHandle(e){
+    const rect=joyZone.getBoundingClientRect(); const touch=e.touches?e.touches[0]:e;
+    let dx=touch.clientX-(rect.left+rect.width/2), dy=touch.clientY-(rect.top+rect.height/2);
+    const max=42; const d=Math.hypot(dx,dy);
+    if (d>max){ dx=dx/d*max; dy=dy/d*max; }
+    joyStick.style.left=(37+dx)+'px'; joyStick.style.top=(37+dy)+'px';
+    joyVec={x:dx/max,y:dy/max};
+  }
+  joyZone.addEventListener('touchstart', e=>{ joyActive=true; joyHandle(e); e.preventDefault(); }, {passive:false});
+  joyZone.addEventListener('touchmove', e=>{ if(joyActive) joyHandle(e); e.preventDefault(); }, {passive:false});
+  joyZone.addEventListener('touchend', ()=>{ joyActive=false; joyVec={x:0,y:0}; joyStick.style.left='37px'; joyStick.style.top='37px'; });
+  document.getElementById('empBtnTouch').addEventListener('touchstart', e=>{ e.preventDefault(); tryEmp(); });
+
+  function tryEmp(){
+    if (!running) return;
+    if (player.empCharge >= 100){
+      player.empCharge = 0;
+      empRing = { r:0, max:260 };
+      addParticles(player.x, player.y, '#ffb000', 30);
+      drones.forEach(d=>{ if (dist(d.x,d.y,player.x,player.y) < 260) d.stunned = 1.6; });
+      turrets.forEach(t=>{
+        if (dist(t.x,t.y,player.x,player.y) < 260){
+          if (missionType==='sabotage' && !t.hacked){ t.hacked=true; hackedCount++; addParticles(t.x,t.y,'#00fff2',18); }
+          else t.stunned = 1.6;
+        }
+      });
+      bullets = bullets.filter(b=> dist(b.x,b.y,player.x,player.y) > 260);
+    }
+  }
+
+  function resolveBuildingCollision(){
+    for (const b of buildings){
+      const cx=clamp(player.x,b.x,b.x+b.w), cy=clamp(player.y,b.y,b.y+b.h);
+      const dx=player.x-cx, dy=player.y-cy; const d=Math.hypot(dx,dy);
+      if (d < player.r){ if (d===0){ player.x+=player.r; } else { const overlap=player.r-d; player.x+=dx/d*overlap; player.y+=dy/d*overlap; } }
+    }
+  }
+
+  // ---------- Update ----------
+  function update(dt){
+    elapsed += dt;
+    heat = Math.min(1, elapsed/80);
+
+    let ax=0, ay=0;
+    if (keys['KeyW']||keys['ArrowUp']) ay-=1;
+    if (keys['KeyS']||keys['ArrowDown']) ay+=1;
+    if (keys['KeyA']||keys['ArrowLeft']) ax-=1;
+    if (keys['KeyD']||keys['ArrowRight']) ax+=1;
+    if (joyActive){ ax+=joyVec.x; ay+=joyVec.y; }
+    const mag=Math.hypot(ax,ay);
+    if (mag>0){ ax/=mag; ay/=mag; player.angle=Math.atan2(ay,ax); }
+
+    const accel=640;
+    player.vx += ax*accel*dt; player.vy += ay*accel*dt;
+    player.vx *= 0.90; player.vy *= 0.90;
+    player.x += player.vx*dt; player.y += player.vy*dt;
+    player.x = clamp(player.x, player.r, WORLD_W-player.r);
+    player.y = clamp(player.y, player.r, WORLD_H-player.r);
+    resolveBuildingCollision();
+
+    camera.x = clamp(player.x - W/2, 0, Math.max(0,WORLD_W-W));
+    camera.y = clamp(player.y - H/2, 0, Math.max(0,WORLD_H-H));
+
+    const dNow = districtAt(player.x).name;
+    if (dNow !== currentDistrictName){ currentDistrictName = dNow; document.getElementById('tagline').textContent = dNow; }
+
+    if (Math.hypot(player.vx,player.vy) > 40){
+      particles.push({x:player.x-Math.cos(player.angle)*10, y:player.y-Math.sin(player.angle)*10, vx:0, vy:0, life:0.35, color:'#00fff2', t:0, trail:true});
+    }
+    if (player.invuln > 0) player.invuln -= dt;
+    if (player.empCharge < 100) player.empCharge = Math.min(100, player.empCharge + dt*9);
+
+    spawnTimer -= dt;
+    const droneInterval = Math.max(0.55, 1.9 - heat*1.1);
+    if (spawnTimer <= 0){ spawnDrone(); spawnTimer = droneInterval; }
+
+    turretSpawnTimer -= dt;
+    const turretCap = missionType==='sabotage' ? 9 : 3+Math.floor(heat*4);
+    if (turretSpawnTimer <= 0 && turrets.length < turretCap){ spawnTurret(); turretSpawnTimer = rand(7,11)-heat*3; }
+
+    shardTimer -= dt;
+    if (shardTimer <= 0 && shards.filter(s=>!s.core).length < 7){ spawnShard(); shardTimer = rand(1.4,2.6); }
+
+    if (vaultCoreActive){
+      coreShardTimer -= dt;
+      if (coreShardTimer <= 0 && !shards.some(s=>s.core)){ spawnCoreShard(); coreShardTimer = rand(9,14); }
+    }
+
+    // courier movement
+    if (missionType==='escort' && courier && courier.alive){
+      const wp = COURIER_PATH[courier.wpIndex];
+      const a = Math.atan2(wp.y-courier.y, wp.x-courier.x);
+      courier.angle = a;
+      courier.x += Math.cos(a)*courier.speed*dt;
+      courier.y += Math.sin(a)*courier.speed*dt;
+      if (dist(courier.x,courier.y,wp.x,wp.y) < 40 && courier.wpIndex < COURIER_PATH.length-1) courier.wpIndex++;
+    }
+
+    drones.forEach(d=>{
+      d.legPhase += dt*8;
+      if (d.stunned > 0){ d.stunned -= dt; return; }
+      d.wobble += dt*3;
+      const tgt = threatTarget(d.x,d.y);
+      const a = Math.atan2(tgt.y-d.y, tgt.x-d.x) + Math.sin(d.wobble)*0.25;
+      d.x += Math.cos(a)*d.speed*dt; d.y += Math.sin(a)*d.speed*dt;
+      d.angle = a;
+      if (player.invuln<=0 && dist(d.x,d.y,player.x,player.y) < d.r+player.r){
+        player.health -= 18; player.invuln = 0.8;
+        addParticles(player.x,player.y,'#ff2e88',14); triggerGlitch();
+        d.x = -9999;
+      } else if (missionType==='escort' && courier && courier.alive && dist(d.x,d.y,courier.x,courier.y) < d.r+courier.r){
+        courier.health -= 16;
+        addParticles(courier.x,courier.y,'#ff2e88',14);
+        d.x = -9999;
+      }
+    });
+    drones = drones.filter(d=> d.x > -500);
+
+    turrets.forEach(t=>{
+      if (t.hacked){ t.aim += dt*1.5; return; }
+      const tgt = threatTarget(t.x,t.y);
+      const targetAim = Math.atan2(tgt.y-t.y, tgt.x-t.x);
+      let diff = targetAim - t.aim;
+      while (diff > Math.PI) diff -= Math.PI*2;
+      while (diff < -Math.PI) diff += Math.PI*2;
+      t.aim += diff * Math.min(1, dt*4);
+      if (t.stunned > 0){ t.stunned -= dt; return; }
+      t.cooldown -= dt;
+      if (t.cooldown <= 0 && dist(t.x,t.y,tgt.x,tgt.y) < 700){
+        t.cooldown = Math.max(0.7, 1.8-heat);
+        bullets.push({x:t.x,y:t.y, vx:Math.cos(t.aim)*220, vy:Math.sin(t.aim)*220});
+      }
+    });
+
+    bullets.forEach(b=>{
+      b.x += b.vx*dt; b.y += b.vy*dt;
+      if (player.invuln<=0 && dist(b.x,b.y,player.x,player.y) < 7+player.r){
+        player.health -= 12; player.invuln = 0.7;
+        addParticles(player.x,player.y,'#ffb000',10); triggerGlitch();
+        b.hit = true;
+      } else if (missionType==='escort' && courier && courier.alive && dist(b.x,b.y,courier.x,courier.y) < 7+courier.r){
+        courier.health -= 10;
+        addParticles(courier.x,courier.y,'#ffb000',10);
+        b.hit = true;
+      }
+    });
+    bullets = bullets.filter(b=> !b.hit && b.x>-100 && b.x<WORLD_W+100 && b.y>-100 && b.y<WORLD_H+100);
+
+    shards.forEach(s=>{
+      s.pulse += dt*4;
+      if (dist(s.x,s.y,player.x,player.y) < (s.core?24:18)){
+        score += s.core?50:10;
+        addParticles(s.x,s.y, s.core?'#ffb000':'#9b5cff', s.core?24:12);
+        s.collected = true;
+      }
+    });
+    shards = shards.filter(s=> !s.collected);
+
+    particles.forEach(p=>{ p.t+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.9; p.vy*=0.9; });
+    particles = particles.filter(p=> p.t < p.life);
+    raindrops.forEach(r=>{ r.y+=r.speed*dt; r.x-=r.speed*0.12*dt; if (r.y>H){ r.y=-20; r.x=rand(0,W); } });
+    if (empRing){ empRing.r += dt*900; if (empRing.r > empRing.max) empRing = null; }
+
+    COMM_QUEUE_BY_TIME.forEach((m,i)=>{ if (i>=commShownIdx.time && elapsed>=m.t){ queueComm(m.speaker,m.text); commShownIdx.time=i+1; } });
+    COMM_QUEUE_BY_SCORE.forEach((m,i)=>{
+      if (i>=commShownIdx.score && score>=m.score){ queueComm(m.speaker,m.text); commShownIdx.score=i+1; if (m.score===180) vaultCoreActive=true; }
+    });
+    processComm(dt);
+
+    // objective HUD text + win/lose checks
+    const objEl = document.getElementById('objectiveLine');
+    if (missionType==='heist'){
+      objEl.textContent = 'OBJECTIVE: Survive & collect data';
+    } else if (missionType==='sabotage'){
+      missionTimer -= dt;
+      objEl.textContent = 'TURRETS HACKED: '+hackedCount+'/6 · LOCKDOWN IN '+mmss(missionTimer);
+      if (running && hackedCount >= 6){ running=false; missionResult='win'; showGameOver(); }
+      else if (running && missionTimer <= 0){ running=false; missionResult='lose'; showGameOver(); }
+    } else if (missionType==='escort'){
+      const routeProgress = courierRouteProgress();
+      objEl.textContent = courier ? ('COURIER: '+Math.max(0,Math.round(courier.health))+'% integrity · Route '+routeProgress+'%') : '';
+      if (running && courier && !courier.alive){ running=false; missionResult='lose'; showGameOver(); }
+      else if (running && courier && courier.health <= 0){ courier.alive=false; running=false; missionResult='lose'; showGameOver(); }
+      else if (running && courier && courier.wpIndex >= COURIER_PATH.length-1 && dist(courier.x,courier.y,COURIER_PATH[COURIER_PATH.length-1].x,COURIER_PATH[COURIER_PATH.length-1].y) < 45){
+        running=false; missionResult='win'; showGameOver();
+      }
+    }
+
+    if (running && player.health <= 0){
+      running = false; best = Math.max(best, score);
+      if (missionType !== 'heist') missionResult = 'lose';
+      showGameOver();
+    }
+
+    document.getElementById('healthFill').style.width = Math.max(0,player.health)+'%';
+    document.getElementById('heatFill').style.width = (heat*100)+'%';
+    document.getElementById('empFill').style.width = player.empCharge+'%';
+    document.getElementById('scoreVal').textContent = score;
+  }
+
+  // ---------- Draw ----------
+  function ts(x,y){ return [x-camera.x, y-camera.y]; }
+  function inView(x,y,pad){ return x>camera.x-pad && x<camera.x+W+pad && y>camera.y-pad && y<camera.y+H+pad; }
+  function glowCircle(x,y,r,color,blur){ ctx.save(); ctx.shadowColor=color; ctx.shadowBlur=blur; ctx.fillStyle=color; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); ctx.restore(); }
+
+  function drawBackground(){
+    ctx.fillStyle='#05070d'; ctx.fillRect(0,0,W,H);
+    DISTRICTS.forEach(d=>{
+      const [sx0]=ts(d.x0,0), [sx1]=ts(d.x1,0);
+      if (sx1<0 || sx0>W) return;
+      ctx.fillStyle=d.tint; ctx.fillRect(Math.max(0,sx0),0,Math.min(W,sx1)-Math.max(0,sx0),H);
+    });
+    ctx.strokeStyle='rgba(0,255,242,0.06)'; ctx.lineWidth=1;
+    const size=90; const offX=(-camera.x)%size, offY=(-camera.y)%size;
+    for (let x=offX-size; x<W+size; x+=size){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y=offY-size; y<H+size; y+=size){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  }
+  function drawBuildings(){
+    buildings.forEach(b=>{
+      if (!inView(b.x,b.y,140)) return;
+      const [sx,sy]=ts(b.x,b.y);
+      ctx.fillStyle=b.color; ctx.fillRect(sx,sy,b.w,b.h);
+      ctx.strokeStyle=b.trim; ctx.globalAlpha=0.5; ctx.lineWidth=1; ctx.strokeRect(sx+0.5,sy+0.5,b.w-1,b.h-1);
+      ctx.globalAlpha=1; ctx.fillStyle=b.trim;
+      const cols=Math.max(2,Math.floor(b.w/22));
+      for (let i=0;i<b.windows;i++){
+        const cx=sx+10+(i%cols)*20, cy=sy+10+Math.floor(i/cols)*20;
+        if (cx<sx+b.w-6 && cy<sy+b.h-6){ ctx.globalAlpha=0.25+0.35*Math.abs(Math.sin(elapsed*0.6+i)); ctx.fillRect(cx,cy,5,7); }
+      }
+      ctx.globalAlpha=1;
+    });
+  }
+  function drawVault(){
+    if (!inView(VAULT.x,VAULT.y,300)) return;
+    const [sx,sy]=ts(VAULT.x-VAULT.w/2, VAULT.y);
+    const pulse=0.5+0.5*Math.sin(elapsed*2);
+    ctx.save();
+    ctx.fillStyle='#0a1b22'; ctx.fillRect(sx,sy,VAULT.w,VAULT.h);
+    ctx.strokeStyle = vaultCoreActive?'#ffb000':'#00fff2';
+    ctx.shadowColor=ctx.strokeStyle; ctx.shadowBlur=20+pulse*10; ctx.lineWidth=3;
+    ctx.strokeRect(sx+2,sy+2,VAULT.w-4,VAULT.h-4);
+    ctx.beginPath(); ctx.moveTo(sx+VAULT.w/2,sy); ctx.lineTo(sx+VAULT.w/2,sy-30); ctx.stroke();
+    glowCircle(sx+VAULT.w/2, sy-30, 4+pulse*2, ctx.strokeStyle, 16);
+    ctx.font='11px monospace'; ctx.fillStyle=ctx.strokeStyle; ctx.textAlign='center'; ctx.globalAlpha=0.8;
+    ctx.fillText('HELIX VAULT CORE', sx+VAULT.w/2, sy-40);
+    ctx.restore();
+  }
+  function drawRain(){
+    ctx.strokeStyle='rgba(150,200,255,0.18)'; ctx.lineWidth=1;
+    raindrops.forEach(r=>{ ctx.beginPath(); ctx.moveTo(r.x,r.y); ctx.lineTo(r.x-r.len*0.25,r.y+r.len); ctx.stroke(); });
+  }
+  function drawShard(s){
+    if (!inView(s.x,s.y,40)) return;
+    const [sx,sy]=ts(s.x,s.y);
+    const size=(s.core?7:3)+Math.sin(s.pulse)*(s.core?2.5:1.5);
+    ctx.save(); ctx.translate(sx,sy); ctx.rotate(s.pulse*0.5);
+    const color = s.core?'#ffb000':'#9b5cff';
+    ctx.shadowColor=color; ctx.shadowBlur=s.core?22:14; ctx.fillStyle=color;
+    ctx.beginPath(); ctx.moveTo(0,-6-size); ctx.lineTo(6+size,0); ctx.lineTo(0,6+size); ctx.lineTo(-6-size,0); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(255,255,255,0.5)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,-3-size*0.4); ctx.lineTo(0,3+size*0.4); ctx.stroke();
+    if (s.core){ ctx.rotate(-s.pulse*1.2); ctx.strokeStyle='rgba(255,176,0,0.5)'; ctx.beginPath(); ctx.arc(0,0,size+8,0,Math.PI*1.4); ctx.stroke(); }
+    ctx.restore();
+  }
+  function drawTurret(t){
+    if (!inView(t.x,t.y,40)) return;
+    const [sx,sy]=ts(t.x,t.y);
+    const color = t.hacked ? '#00fff2' : (t.stunned>0 ? '#4a5568' : '#ffb000');
+    ctx.save(); ctx.translate(sx,sy);
+    ctx.fillStyle='#151a22'; ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.globalAlpha=0.7; ctx.beginPath(); ctx.arc(0,0,16,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1;
+    for (let i=0;i<6;i++){ const a=i/6*Math.PI*2; ctx.fillStyle='#0a0d13'; ctx.beginPath(); ctx.arc(Math.cos(a)*12,Math.sin(a)*12,1.6,0,Math.PI*2); ctx.fill(); }
+    ctx.rotate(t.aim);
+    ctx.fillStyle='#1c232e'; ctx.beginPath(); ctx.arc(0,0,9,0,Math.PI*2); ctx.fill();
+    ctx.shadowColor=color; ctx.shadowBlur=10; ctx.fillStyle=color; ctx.fillRect(4,-2.5,16,5);
+    ctx.restore();
+    const beaconOn = !t.hacked && t.stunned<=0 && Math.sin(elapsed*6)>0;
+    glowCircle(sx, sy-14, t.hacked?3:(beaconOn?3:1.5), t.hacked?'#00fff2':(beaconOn?'#ffb000':'#4a5568'), t.hacked?14:(beaconOn?14:0));
+  }
+  function drawDrone(d){
+    if (!inView(d.x,d.y,40)) return;
+    const [sx,sy]=ts(d.x,d.y);
+    const color = d.stunned>0 ? '#4a5568' : '#ff2e88';
+    ctx.save(); ctx.globalAlpha=0.25; ctx.fillStyle='#000'; ctx.beginPath(); ctx.ellipse(sx,sy+10,10,4,0,0,Math.PI*2); ctx.fill(); ctx.restore();
+    ctx.save(); ctx.translate(sx,sy); ctx.rotate(d.angle||0);
+    for (let i=0;i<4;i++){
+      const a=Math.PI/4+i*Math.PI/2; const ax=Math.cos(a)*13, ay=Math.sin(a)*13;
+      ctx.strokeStyle=color; ctx.globalAlpha=0.7; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(ax,ay); ctx.stroke();
+      if (d.stunned<=0){ ctx.save(); ctx.translate(ax,ay); ctx.rotate(d.legPhase+i); ctx.strokeStyle=color; ctx.globalAlpha=0.4; ctx.beginPath(); ctx.moveTo(-6,0); ctx.lineTo(6,0); ctx.stroke(); ctx.restore(); }
+      ctx.globalAlpha=1;
+    }
+    ctx.shadowColor=color; ctx.shadowBlur=10; ctx.fillStyle='#151a22';
+    ctx.beginPath();
+    for (let i=0;i<6;i++){ const a=i/6*Math.PI*2; const px=Math.cos(a)*8, py=Math.sin(a)*8; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py); }
+    ctx.closePath(); ctx.fill(); ctx.strokeStyle=color; ctx.lineWidth=1.5; ctx.stroke();
+    const eyePulse = d.stunned>0?0:0.6+0.4*Math.sin(elapsed*8);
+    glowCircle(0,0,2.5, d.stunned>0?'#2a2f3a':color, d.stunned>0?0:8*eyePulse);
+    ctx.restore();
+  }
+  function drawCourier(){
+    if (!courier || !courier.alive || !inView(courier.x,courier.y,40)) return;
+    const [sx,sy]=ts(courier.x,courier.y);
+    ctx.save(); ctx.translate(sx,sy); ctx.rotate(courier.angle||0);
+    ctx.shadowColor='#ff2e88'; ctx.shadowBlur=12; ctx.fillStyle='#2a0d1c';
+    ctx.beginPath(); ctx.moveTo(11,0); ctx.lineTo(-6,-7); ctx.lineTo(-3,0); ctx.lineTo(-6,7); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#ff2e88'; ctx.lineWidth=1.3; ctx.stroke();
+    glowCircle(4,0,2,'#ffdce8',8);
+    ctx.restore();
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx-14,sy-18,28,4);
+    ctx.fillStyle='#ff2e88'; ctx.fillRect(sx-13,sy-17,26*Math.max(0,courier.health)/100,2);
+    ctx.restore();
+  }
+  function drawPlayer(){
+    const [sx,sy]=ts(player.x,player.y);
+    const speed=Math.hypot(player.vx,player.vy);
+    ctx.save(); ctx.translate(sx,sy); ctx.rotate(player.angle);
+    const flameLen=6+Math.min(18,speed*0.06);
+    ctx.save(); ctx.globalAlpha=0.7;
+    const grad=ctx.createLinearGradient(-6,0,-6-flameLen,0);
+    grad.addColorStop(0,'rgba(0,255,242,0.8)'); grad.addColorStop(1,'rgba(0,255,242,0)');
+    ctx.fillStyle=grad; ctx.beginPath(); ctx.moveTo(-6,-4); ctx.lineTo(-6-flameLen,0); ctx.lineTo(-6,4); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    const flashOn = player.invuln>0 && Math.floor(elapsed*20)%2===0;
+    const hullColor = flashOn?'#ffffff':'#0d3a3d';
+    ctx.shadowColor='#00fff2'; ctx.shadowBlur=flashOn?4:14;
+    ctx.fillStyle=hullColor;
+    ctx.beginPath(); ctx.moveTo(15,0); ctx.lineTo(4,-7); ctx.lineTo(-11,-9); ctx.lineTo(-7,0); ctx.lineTo(-11,9); ctx.lineTo(4,7); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle=flashOn?'#ffffff':'#00fff2'; ctx.lineWidth=1.4; ctx.stroke();
+    ctx.fillStyle=flashOn?'#ffffff':'#00fff2'; ctx.globalAlpha=0.85;
+    ctx.beginPath(); ctx.moveTo(-4,-6); ctx.lineTo(-13,-13); ctx.lineTo(-8,-4); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-4,6); ctx.lineTo(-13,13); ctx.lineTo(-8,4); ctx.closePath(); ctx.fill();
+    ctx.globalAlpha=1;
+    glowCircle(6,0,2.6, flashOn?'#ffffff':'#e8ffff', 10);
+    ctx.restore();
+  }
+  function draw(){
+    drawBackground(); drawBuildings(); drawVault();
+    shards.forEach(drawShard);
+    particles.forEach(p=>{ const [sx,sy]=ts(p.x,p.y); const alpha=1-p.t/p.life; ctx.save(); ctx.globalAlpha=alpha; glowCircle(sx,sy,p.trail?2:2.5,p.color,8); ctx.restore(); });
+    turrets.forEach(drawTurret);
+    bullets.forEach(b=>{ const [sx,sy]=ts(b.x,b.y); glowCircle(sx,sy,3,'#ffb000',10); });
+    drones.forEach(drawDrone);
+    drawCourier();
+    drawPlayer();
+    if (empRing){
+      const [sx,sy]=ts(player.x,player.y);
+      ctx.save(); ctx.strokeStyle='#ffb000'; ctx.shadowColor='#ffb000'; ctx.shadowBlur=20;
+      ctx.globalAlpha=1-empRing.r/empRing.max; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(sx,sy,empRing.r,0,Math.PI*2); ctx.stroke(); ctx.restore();
+    }
+    drawRain();
+    const g=ctx.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,H*0.75);
+    g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.5)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    drawMinimap();
+  }
+  function drawMinimap(){
+    const mw=mmCanvas.width/DPR, mh=mmCanvas.height/DPR;
+    mmCtx.clearRect(0,0,mw,mh);
+    mmCtx.fillStyle='rgba(5,10,18,0.85)'; mmCtx.fillRect(0,0,mw,mh);
+    const sx=mw/WORLD_W, sy=mh/WORLD_H;
+    DISTRICTS.forEach(d=>{ mmCtx.fillStyle=d.mmTint; mmCtx.fillRect(d.x0*sx,0,(d.x1-d.x0)*sx,mh); });
+    mmCtx.fillStyle = vaultCoreActive?'#ffb000':'#00fff2';
+    mmCtx.fillRect(VAULT.x*sx-2, VAULT.y*sy-2, 4,4);
+    shards.forEach(s=>{ mmCtx.fillStyle = s.core?'#ffb000':'#9b5cff'; mmCtx.fillRect(s.x*sx-1,s.y*sy-1,2,2); });
+    mmCtx.fillStyle='#ff2e88'; drones.forEach(d=>{ mmCtx.fillRect(d.x*sx-1,d.y*sy-1,2,2); });
+    mmCtx.fillStyle='#ffb000'; turrets.forEach(t=>{ mmCtx.fillStyle = t.hacked?'#00fff2':'#ffb000'; mmCtx.fillRect(t.x*sx-1,t.y*sy-1,2,2); });
+    if (courier && courier.alive){ mmCtx.fillStyle='#ff8fc0'; mmCtx.fillRect(courier.x*sx-1.5,courier.y*sy-1.5,3,3); }
+    mmCtx.strokeStyle='rgba(255,255,255,0.5)'; mmCtx.lineWidth=1;
+    mmCtx.strokeRect(camera.x*sx, camera.y*sy, W*sx, H*sy);
+    mmCtx.fillStyle='#ffffff'; mmCtx.beginPath(); mmCtx.arc(player.x*sx, player.y*sy, 2.4, 0, Math.PI*2); mmCtx.fill();
+    mmCtx.strokeStyle='rgba(0,255,242,0.4)'; mmCtx.strokeRect(0,0,mw,mh);
+  }
+
+  let last = performance.now();
+  function loop(now){ const dt=Math.min(0.033,(now-last)/1000); last=now; if (running){ update(dt); draw(); } requestAnimationFrame(loop); }
+
+  // ---------- Overlay control ----------
+  const overlay=document.getElementById('overlay'), ovEyebrow=document.getElementById('ovEyebrow'), ovTitle=document.getElementById('ovTitle');
+  const ovText=document.getElementById('ovText'), ovStat=document.getElementById('ovStat'), actionBtn=document.getElementById('actionBtn');
+  const dots=[document.getElementById('dot0'),document.getElementById('dot1'),document.getElementById('dot2')];
+  const missionCardsEl=document.getElementById('missionCards');
+
+  function renderIntroSlide(){
+    const slide=STORY_INTRO[introStep];
+    ovEyebrow.textContent=slide.eyebrow; ovTitle.innerHTML=slide.title;
+    ovText.innerHTML = slide.body + (slide.controls ? '<br><br><span class="key">W A S D</span> / <span class="key">ARROWS</span> move &nbsp;\u00b7&nbsp; <span class="key">SPACE</span> EMP burst' : '');
+    ovStat.style.display='none';
+    document.getElementById('progressDots').style.display='flex';
+    dots.forEach((d,i)=>d.classList.toggle('active', i===introStep));
+    missionCardsEl.style.display='none';
+    actionBtn.style.display='inline-block';
+    actionBtn.textContent=slide.btn; actionBtn.className='flicker';
+  }
+
+  function renderMissionSelect(){
+    overlayMode='missionSelect';
+    ovEyebrow.textContent='JUNIPER · SECURE CHANNEL';
+    ovTitle.innerHTML='MISSION <span>BOARD</span>';
+    ovText.textContent="Pick a contract. Each one hits Helix-Meridian a different way.";
+    ovStat.style.display='none';
+    document.getElementById('progressDots').style.display='none';
+    actionBtn.style.display='none';
+    missionCardsEl.innerHTML='';
+    MISSIONS.forEach(m=>{
+      const card=document.createElement('div');
+      card.className='mission-card';
+      card.style.borderLeftColor=m.color;
+      card.innerHTML='<div class="m-tag" style="color:'+m.color+'">'+m.tag+'</div><div class="m-name" style="color:'+m.color+'">'+m.name+'</div><div class="m-desc">'+m.desc+'</div>';
+      card.addEventListener('click', ()=>{
+        missionType=m.id;
+        overlay.style.display='none';
+        reset();
+        running=true;
+      });
+      missionCardsEl.appendChild(card);
+    });
+    missionCardsEl.style.display='flex';
+    overlay.style.display='flex';
+  }
+
+  function showGameOver(){
+    overlayMode='gameover';
+    let title, body, statText;
+    if (missionType==='heist'){
+      const end=heistEnding(score); title=end.title; body=end.body;
+      statText='DATA FRAGMENTS: '+score+'  \u00b7  BEST: '+best;
+    } else {
+      const outcome = MISSION_OUTCOMES[missionType][missionResult==='win' ? 'win' : 'lose'];
+      title=outcome.title; body=outcome.body;
+      if (missionType==='sabotage') statText='TURRETS HACKED: '+hackedCount+'/6';
+      else statText='COURIER INTEGRITY: '+Math.max(0,Math.round(courier?courier.health:0))+'%';
+    }
+    ovEyebrow.textContent = (missionResult==='win') ? 'CONTRACT COMPLETE' : 'CONNECTION TERMINATED';
+    ovTitle.innerHTML=title; ovText.textContent=body;
+    ovStat.style.display='block'; ovStat.textContent=statText;
+    document.getElementById('progressDots').style.display='none';
+    missionCardsEl.style.display='none';
+    actionBtn.style.display='inline-block';
+    actionBtn.textContent='MISSION BOARD';
+    actionBtn.className = (missionResult==='win' || missionType==='heist') ? 'flicker' : 'flicker magenta';
+    overlay.style.display='flex';
+  }
+
+  actionBtn.addEventListener('click', ()=>{
+    if (overlayMode==='intro'){
+      if (introStep < STORY_INTRO.length-1){ introStep++; renderIntroSlide(); return; }
+      renderMissionSelect();
+    } else if (overlayMode==='gameover'){
+      renderMissionSelect();
+    }
+  });
+
+  resize();
+  buildWorld();
+  reset();
+  renderIntroSlide();
+  overlay.style.display='flex';
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
