@@ -32,6 +32,21 @@
   #comm .speaker { display:block; font-size:10px; letter-spacing:0.18em; font-weight:bold; margin-bottom:4px; }
   #comm.echo .speaker { color:var(--cyan); }
   #comm.juniper .speaker { color:var(--magenta); }
+  #achToast { position:absolute; top:90px; left:50%; transform:translate(-50%,-14px); background:rgba(10,8,2,0.9); border:1px solid var(--amber); padding:10px 20px; z-index:7; opacity:0; transition:opacity 0.3s ease, transform 0.3s ease; pointer-events:none; text-align:center; box-shadow:0 0 18px rgba(255,176,0,0.25); }
+  #achToast.show { opacity:1; transform:translate(-50%,0); }
+  #achToast .ach-label { font-size:9px; letter-spacing:0.25em; color:var(--amber); display:block; margin-bottom:3px; }
+  #achToast .ach-name { font-size:13px; font-weight:bold; color:var(--bright,#e8eeff); letter-spacing:0.05em; }
+  #achList { display:none; flex-direction:column; gap:8px; margin-top:14px; width:100%; max-width:440px; max-height:220px; overflow-y:auto; text-align:left; }
+  .ach-row { display:flex; gap:12px; align-items:center; padding:8px 12px; background:rgba(255,255,255,0.03); border-left:2px solid var(--dim); }
+  .ach-row.unlocked { border-left-color:var(--amber); background:rgba(255,176,0,0.05); }
+  .ach-icon { font-size:18px; width:24px; text-align:center; flex-shrink:0; opacity:0.4; }
+  .ach-row.unlocked .ach-icon { opacity:1; }
+  .ach-text { flex:1; }
+  .ach-title { font-size:11.5px; font-weight:bold; letter-spacing:0.04em; color:var(--dim); }
+  .ach-row.unlocked .ach-title { color:var(--amber); }
+  .ach-desc { font-size:10px; color:var(--dim); margin-top:2px; line-height:1.4; }
+  #achToggleBtn { margin-top:14px; background:transparent; border:1px solid var(--dim); color:var(--dim); padding:8px 20px; font-size:10px; letter-spacing:0.15em; font-family:inherit; cursor:pointer; }
+  #achToggleBtn:hover { border-color:var(--amber); color:var(--amber); }
   #minimap { position:absolute; right:20px; bottom:20px; z-index:6; border:1px solid rgba(0,255,242,0.35); background:rgba(5,10,18,0.7); box-shadow:0 0 12px rgba(0,255,242,0.1); }
   #minimapLabel { position:absolute; right:20px; bottom:132px; z-index:6; color:var(--dim); font-size:9px; letter-spacing:0.22em; }
   #overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; background:rgba(5,7,13,0.92); z-index:10; text-align:center; padding:20px; overflow-y:auto; }
@@ -94,6 +109,7 @@
   </div>
 
   <div id="comm"><span class="speaker" id="commSpeaker">ECHO</span><span id="commText"></span></div>
+  <div id="achToast"><span class="ach-label">ACHIEVEMENT UNLOCKED</span><span class="ach-name" id="achToastName"></span></div>
   <div id="minimapLabel">CHROME DELTA · GRID MAP</div>
   <canvas id="minimap" width="170" height="110"></canvas>
 
@@ -106,6 +122,8 @@
       <div class="dot" id="dot0"></div><div class="dot" id="dot1"></div><div class="dot" id="dot2"></div>
     </div>
     <div id="missionCards"></div>
+    <button id="achToggleBtn" style="display:none;">🏆 VIEW ACHIEVEMENTS</button>
+    <div id="achList"></div>
     <button id="actionBtn" class="flicker">CONTINUE</button>
   </div>
 
@@ -174,6 +192,64 @@
     if (score >= 140) return { title:'PARTIAL <span>BREACH</span>', body:"You got out with enough to make Helix's legal department sweat, not enough to bring the tower down. Juniper says it's a start." };
     return { title:'SIGNAL <span>LOST</span>', body:"The ICE closes the loop before you can pull anything worth the risk. Juniper's voice is tight over the line: \"You're alive. That's the only win tonight.\"" };
   }
+  const ACHIEVEMENTS = [
+    { id:'first_contact', icon:'📡', name:'FIRST CONTACT', desc:'Finish your first run on any contract.' },
+    { id:'ghost_runner', icon:'👻', name:'GHOST RUNNER', desc:'Reach 300+ data fragments on a Ghost Run.' },
+    { id:'blackout_artist', icon:'⚡', name:'BLACKOUT ARTIST', desc:'Complete the Blackout sabotage contract.' },
+    { id:'safe_hands', icon:'🛰️', name:'SAFE HANDS', desc:'Get the courier to extraction alive.' },
+    { id:'vault_breaker', icon:'🔓', name:'VAULT BREAKER', desc:'Collect a core fragment from the Helix Vault.' },
+    { id:'untouchable', icon:'🛡️', name:'UNTOUCHABLE', desc:'Win a contract without taking a single hit.' },
+    { id:'emp_overload', icon:'💥', name:'EMP OVERLOAD', desc:'Trigger 10 EMP bursts in one run.' },
+    { id:'district_tourist', icon:'🗺️', name:'DISTRICT TOURIST', desc:'Pass through all three districts in one run.' },
+    { id:'close_call', icon:'❤️', name:'CLOSE CALL', desc:'Win a contract with integrity under 10%.' },
+    { id:'speed_hacker', icon:'⏱️', name:'SPEED HACKER', desc:'Finish Blackout with over a minute left on the clock.' }
+  ];
+  let unlockedAchievements = new Set();
+  const SAVE_KEY_ACH = 'neonbreach_achievements';
+  const SAVE_KEY_BEST = 'neonbreach_best';
+  let storageOK = true;
+  function loadSave(){
+    try {
+      const raw = localStorage.getItem(SAVE_KEY_ACH);
+      if (raw) unlockedAchievements = new Set(JSON.parse(raw));
+      const rawBest = localStorage.getItem(SAVE_KEY_BEST);
+      if (rawBest) best = parseInt(rawBest,10) || 0;
+    } catch(e){ storageOK = false; }
+  }
+  function saveAchievements(){
+    if (!storageOK) return;
+    try { localStorage.setItem(SAVE_KEY_ACH, JSON.stringify([...unlockedAchievements])); }
+    catch(e){ storageOK = false; }
+  }
+  function saveBest(){
+    if (!storageOK) return;
+    try { localStorage.setItem(SAVE_KEY_BEST, String(best)); }
+    catch(e){ storageOK = false; }
+  }
+  let achToastQueue = [];
+  let achToastActive = false, achToastTimer = 0, achToastHideTimer = 0;
+  function unlockAchievement(id){
+    if (unlockedAchievements.has(id)) return;
+    unlockedAchievements.add(id);
+    saveAchievements();
+    const a = ACHIEVEMENTS.find(x=>x.id===id);
+    if (a) achToastQueue.push(a);
+  }
+  function processAchToast(dt){
+    const el = document.getElementById('achToast');
+    if (!achToastActive && achToastQueue.length && achToastTimer<=0){
+      const a = achToastQueue.shift();
+      document.getElementById('achToastName').textContent = a.icon+' '+a.name;
+      requestAnimationFrame(()=> el.classList.add('show'));
+      achToastActive = true; achToastHideTimer = 3.2;
+    }
+    if (achToastActive){
+      achToastHideTimer -= dt;
+      if (achToastHideTimer <= 0){ el.classList.remove('show'); achToastActive=false; achToastTimer=0.6; }
+    }
+    if (achToastTimer>0) achToastTimer -= dt;
+  }
+
   const MISSION_OUTCOMES = {
     sabotage: {
       win: { title:'GRID <span>DARKENED</span>', body:"Six sentries drop off Helix's network in the same second. For a few minutes, that whole block of Chrome Delta goes dark and deaf. Juniper's already moving \u2014 says it's the biggest opening they'll get all month." },
@@ -266,6 +342,7 @@
   let spawnTimer=0, turretSpawnTimer=0, shardTimer=0, coreShardTimer=0;
   let vaultCoreActive = false;
   let commQueue=[], commTimer=0, commShownIdx={time:0,score:0};
+  let empUsesThisRun=0, districtsVisitedThisRun=new Set(), tookDamageThisRun=false;
   let currentDistrictName = '';
 
   function courierRouteProgress(){
@@ -298,6 +375,7 @@
     vaultCoreActive=false; empRing=null;
     commQueue=[]; commTimer=0; commShownIdx={time:0,score:0};
     missionTimer = 120; hackedCount = 0; missionResult = null;
+    empUsesThisRun = 0; districtsVisitedThisRun = new Set(); tookDamageThisRun = false;
     raindrops=[];
     for (let i=0;i<70;i++) raindrops.push({x:rand(0,W||window.innerWidth), y:rand(0,H||window.innerHeight), len:rand(8,18), speed:rand(400,700)});
     for (let i=0;i<6;i++){ const p=randomWorldPos(150,true); shards.push({x:p.x,y:p.y,pulse:rand(0,Math.PI*2)}); }
@@ -368,6 +446,8 @@
       player.empCharge = 0;
       empRing = { r:0, max:260 };
       addParticles(player.x, player.y, '#ffb000', 30);
+      empUsesThisRun++;
+      if (empUsesThisRun >= 10) unlockAchievement('emp_overload');
       drones.forEach(d=>{ if (dist(d.x,d.y,player.x,player.y) < 260) d.stunned = 1.6; });
       turrets.forEach(t=>{
         if (dist(t.x,t.y,player.x,player.y) < 260){
@@ -414,6 +494,8 @@
 
     const dNow = districtAt(player.x).name;
     if (dNow !== currentDistrictName){ currentDistrictName = dNow; document.getElementById('tagline').textContent = dNow; }
+    districtsVisitedThisRun.add(dNow);
+    if (districtsVisitedThisRun.size >= 3) unlockAchievement('district_tourist');
 
     if (Math.hypot(player.vx,player.vy) > 40){
       particles.push({x:player.x-Math.cos(player.angle)*10, y:player.y-Math.sin(player.angle)*10, vx:0, vy:0, life:0.35, color:'#00fff2', t:0, trail:true});
@@ -458,7 +540,7 @@
       d.x += Math.cos(a)*d.speed*dt; d.y += Math.sin(a)*d.speed*dt;
       d.angle = a;
       if (player.invuln<=0 && dist(d.x,d.y,player.x,player.y) < d.r+player.r){
-        player.health -= 18; player.invuln = 0.8;
+        player.health -= 18; player.invuln = 0.8; tookDamageThisRun = true;
         addParticles(player.x,player.y,'#ff2e88',14); triggerGlitch();
         d.x = -9999;
       } else if (missionType==='escort' && courier && courier.alive && dist(d.x,d.y,courier.x,courier.y) < d.r+courier.r){
@@ -489,7 +571,7 @@
       const prevX = b.x, prevY = b.y;
       b.x += b.vx*dt; b.y += b.vy*dt;
       if (player.invuln<=0 && dist(b.x,b.y,player.x,player.y) < 7+player.r){
-        player.health -= 12; player.invuln = 0.7;
+        player.health -= 12; player.invuln = 0.7; tookDamageThisRun = true;
         addParticles(player.x,player.y,'#ffb000',10); triggerGlitch();
         b.hit = true;
       } else if (missionType==='escort' && courier && courier.alive && dist(b.x,b.y,courier.x,courier.y) < 7+courier.r){
@@ -508,6 +590,7 @@
       if (dist(s.x,s.y,player.x,player.y) < (s.core?24:18)){
         score += s.core?50:10;
         addParticles(s.x,s.y, s.core?'#ffb000':'#9b5cff', s.core?24:12);
+        if (s.core) unlockAchievement('vault_breaker');
         s.collected = true;
       }
     });
@@ -523,6 +606,7 @@
       if (i>=commShownIdx.score && score>=m.score){ queueComm(m.speaker,m.text); commShownIdx.score=i+1; if (m.score===180) vaultCoreActive=true; }
     });
     processComm(dt);
+    processAchToast(dt);
 
     // objective HUD text + win/lose checks
     const objEl = document.getElementById('objectiveLine');
@@ -531,7 +615,10 @@
     } else if (missionType==='sabotage'){
       missionTimer -= dt;
       objEl.textContent = 'TURRETS HACKED: '+hackedCount+'/6 · LOCKDOWN IN '+mmss(missionTimer);
-      if (running && hackedCount >= 6){ running=false; missionResult='win'; showGameOver(); }
+      if (running && hackedCount >= 6){
+        if (missionTimer > 60) unlockAchievement('speed_hacker');
+        running=false; missionResult='win'; showGameOver();
+      }
       else if (running && missionTimer <= 0){ running=false; missionResult='lose'; showGameOver(); }
     } else if (missionType==='escort'){
       const routeProgress = courierRouteProgress();
@@ -544,7 +631,7 @@
     }
 
     if (running && player.health <= 0){
-      running = false; best = Math.max(best, score);
+      running = false; best = Math.max(best, score); saveBest();
       if (missionType !== 'heist') missionResult = 'lose';
       showGameOver();
     }
@@ -748,6 +835,8 @@
     document.getElementById('progressDots').style.display='flex';
     dots.forEach((d,i)=>d.classList.toggle('active', i===introStep));
     missionCardsEl.style.display='none';
+    document.getElementById('achToggleBtn').style.display='none';
+    document.getElementById('achList').style.display='none';
     actionBtn.style.display='inline-block';
     actionBtn.textContent=slide.btn; actionBtn.className='flicker';
   }
@@ -775,28 +864,65 @@
       missionCardsEl.appendChild(card);
     });
     missionCardsEl.style.display='flex';
+    document.getElementById('achToggleBtn').style.display='inline-block';
+    document.getElementById('achToggleBtn').textContent='🏆 VIEW ACHIEVEMENTS ('+unlockedAchievements.size+'/'+ACHIEVEMENTS.length+')';
+    document.getElementById('achList').style.display='none';
     overlay.style.display='flex';
   }
 
+  function renderAchievements(){
+    const listEl = document.getElementById('achList');
+    listEl.innerHTML='';
+    ACHIEVEMENTS.forEach(a=>{
+      const unlocked = unlockedAchievements.has(a.id);
+      const row=document.createElement('div');
+      row.className = 'ach-row' + (unlocked?' unlocked':'');
+      row.innerHTML = '<div class="ach-icon">'+(unlocked?a.icon:'🔒')+'</div><div class="ach-text"><div class="ach-title">'+a.name+'</div><div class="ach-desc">'+a.desc+'</div></div>';
+      listEl.appendChild(row);
+    });
+  }
+  const achToggleBtn = document.getElementById('achToggleBtn');
+  achToggleBtn.addEventListener('click', ()=>{
+    const listEl = document.getElementById('achList');
+    const showing = listEl.style.display === 'flex';
+    if (showing){
+      listEl.style.display='none'; missionCardsEl.style.display='flex';
+      achToggleBtn.textContent='🏆 VIEW ACHIEVEMENTS ('+unlockedAchievements.size+'/'+ACHIEVEMENTS.length+')';
+    } else {
+      renderAchievements();
+      listEl.style.display='flex'; missionCardsEl.style.display='none';
+      achToggleBtn.textContent='← BACK TO CONTRACTS';
+    }
+  });
   function showGameOver(){
     overlayMode='gameover';
+    unlockAchievement('first_contact');
     let title, body, statText;
     if (missionType==='heist'){
       const end=heistEnding(score); title=end.title; body=end.body;
       statText='DATA FRAGMENTS: '+score+'  \u00b7  BEST: '+best;
+      if (score >= 300) unlockAchievement('ghost_runner');
     } else {
       const outcome = MISSION_OUTCOMES[missionType][missionResult==='win' ? 'win' : 'lose'];
       title=outcome.title; body=outcome.body;
       if (missionType==='sabotage') statText='TURRETS HACKED: '+hackedCount+'/6';
       else statText='COURIER INTEGRITY: '+Math.max(0,Math.round(courier?courier.health:0))+'%';
+      if (missionResult==='win'){
+        if (missionType==='sabotage') unlockAchievement('blackout_artist');
+        if (missionType==='escort') unlockAchievement('safe_hands');
+        if (!tookDamageThisRun) unlockAchievement('untouchable');
+        const finalHealth = missionType==='escort' ? (courier?courier.health:100) : player.health;
+        if (finalHealth < 10) unlockAchievement('close_call');
+      }
     }
     ovEyebrow.textContent = (missionResult==='win') ? 'CONTRACT COMPLETE' : 'CONNECTION TERMINATED';
     ovTitle.innerHTML=title; ovText.textContent=body;
     ovStat.style.display='block'; ovStat.textContent=statText;
     document.getElementById('progressDots').style.display='none';
     missionCardsEl.style.display='none';
+    document.getElementById('achToggleBtn').style.display='none';
+    document.getElementById('achList').style.display='none';
     actionBtn.style.display='inline-block';
-    actionBtn.textContent='MISSION BOARD';
     actionBtn.className = (missionResult==='win' || missionType==='heist') ? 'flicker' : 'flicker magenta';
     overlay.style.display='flex';
   }
@@ -811,6 +937,7 @@
   });
 
   resize();
+  loadSave();
   buildWorld();
   reset();
   renderIntroSlide();
