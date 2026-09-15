@@ -217,6 +217,27 @@
       }
     }
   }
+  function segmentIntersectsRect(x1,y1,x2,y2,rx,ry,rw,rh){
+    let t0=0, t1=1;
+    const dx=x2-x1, dy=y2-y1;
+    const p=[-dx,dx,-dy,dy];
+    const q=[x1-rx, rx+rw-x1, y1-ry, ry+rh-y1];
+    for (let i=0;i<4;i++){
+      if (p[i]===0){ if (q[i]<0) return false; }
+      else {
+        const r=q[i]/p[i];
+        if (p[i]<0){ if (r>t1) return false; else if (r>t0) t0=r; }
+        else { if (r<t0) return false; else if (r<t1) t1=r; }
+      }
+    }
+    return true;
+  }
+  function hasLineOfSight(x1,y1,x2,y2){
+    for (const b of buildings){
+      if (segmentIntersectsRect(x1,y1,x2,y2,b.x,b.y,b.w,b.h)) return false;
+    }
+    return true;
+  }
   function insideAnyBuilding(x,y,pad){
     for (const b of buildings) if (x>b.x-pad && x<b.x+b.w+pad && y>b.y-pad && y<b.y+b.h+pad) return true;
     return false;
@@ -402,7 +423,9 @@
 
     spawnTimer -= dt;
     const droneInterval = Math.max(0.55, 1.9 - heat*1.1);
-    if (spawnTimer <= 0){ spawnDrone(); spawnTimer = droneInterval; }
+    const droneCap = missionType==='sabotage' ? (5+Math.floor(heat*5)) : (7+Math.floor(heat*9));
+    if (spawnTimer <= 0 && drones.length < droneCap){ spawnDrone(); spawnTimer = droneInterval; }
+    else if (spawnTimer <= 0){ spawnTimer = 0.4; }
 
     turretSpawnTimer -= dt;
     const turretCap = missionType==='sabotage' ? 9 : 3+Math.floor(heat*4);
@@ -456,13 +479,14 @@
       t.aim += diff * Math.min(1, dt*4);
       if (t.stunned > 0){ t.stunned -= dt; return; }
       t.cooldown -= dt;
-      if (t.cooldown <= 0 && dist(t.x,t.y,tgt.x,tgt.y) < 700){
+      if (t.cooldown <= 0 && dist(t.x,t.y,tgt.x,tgt.y) < 700 && hasLineOfSight(t.x,t.y,tgt.x,tgt.y)){
         t.cooldown = Math.max(0.7, 1.8-heat);
         bullets.push({x:t.x,y:t.y, vx:Math.cos(t.aim)*220, vy:Math.sin(t.aim)*220});
       }
     });
 
     bullets.forEach(b=>{
+      const prevX = b.x, prevY = b.y;
       b.x += b.vx*dt; b.y += b.vy*dt;
       if (player.invuln<=0 && dist(b.x,b.y,player.x,player.y) < 7+player.r){
         player.health -= 12; player.invuln = 0.7;
@@ -471,6 +495,9 @@
       } else if (missionType==='escort' && courier && courier.alive && dist(b.x,b.y,courier.x,courier.y) < 7+courier.r){
         courier.health -= 10;
         addParticles(courier.x,courier.y,'#ffb000',10);
+        b.hit = true;
+      } else if (insideAnyBuilding(b.x,b.y,0) || !hasLineOfSight(prevX,prevY,b.x,b.y)){
+        addParticles(b.x,b.y,'#4a5568',6);
         b.hit = true;
       }
     });
